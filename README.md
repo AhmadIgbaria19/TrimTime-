@@ -138,9 +138,8 @@ Unanswered **Pending** becomes **Expired** at appointment start (process boot + 
 
 | Piece | How it runs today |
 | --- | --- |
-| React + Vite client | Host, `http://127.0.0.1:3001` |
-| Express + TypeScript API | Host, `http://127.0.0.1:4000` |
-| PostgreSQL 16 | Docker only, `127.0.0.1:5434`, volume `trimtime_pgdata` |
+| App (React build + Express API) | Docker, `http://127.0.0.1:3001` |
+| PostgreSQL 16 | Docker, `127.0.0.1:5434`, volume `trimtime_pgdata` |
 
 Do not bind this stack to port **3000**.
 
@@ -150,15 +149,16 @@ TirmTimeProject/
   server/                 API, SQL migrations, unit + isolated live tests
   docs/screenshots/       README product tour
   db/init.sql             First-boot Postgres hook (tables come from migrations)
-  docker-compose.yml      Postgres only
+  Dockerfile              Multi-stage app image
+  docker-compose.yml      App + Postgres
   ROADMAP.md              Product → Docker → CI → AWS
 ```
 
-The **app is not in Docker yet**. Following this README still requires Node on the host.
+Secrets stay in the host `.env` file. Compose injects them at runtime; they are not copied into the image.
 
 ## Run locally
 
-**Prerequisites:** Node.js 22, Docker Desktop, npm.
+**Prerequisites:** Docker Desktop. Node.js is only needed for `npm test` / `npm run test:live` or optional host-based `npm run dev`.
 
 1. Copy environment values. Never commit `.env`.
 
@@ -166,25 +166,33 @@ The **app is not in Docker yet**. Following this README still requires Node on t
 cp .env.example .env
 ```
 
-2. Start Postgres (does **not** delete the volume).
+2. Build and start the app + Postgres. This does **not** delete volume `trimtime_pgdata`. Never add `-v` to `docker compose down`.
 
 ```bash
-npm run db:up
+npm run up
 ```
 
-3. Install and run client + API.
+or:
+
+```bash
+docker compose up -d --build --wait
+```
+
+On API startup: migrations, seed the salon if empty (default name North Atelier), seed admin from `.env` if that phone is unused. The live demo shop was renamed to **LAMSA** in Settings.
+
+- Site: `http://127.0.0.1:3001`
+- Health: `http://127.0.0.1:3001/api/health`
+
+Postgres remains published at `127.0.0.1:5434` for host-side tests.
+
+Optional host-based Vite + API (not required to run the product). Stop the `trimtime-app` container first so port **3001** is free, then:
 
 ```bash
 npm install
 npm run dev
 ```
 
-On API startup: migrations, seed the salon if empty (default name North Atelier), seed admin from `.env` if that phone is unused. The live demo shop was renamed to **LAMSA** in Settings.
-
-- Site: `http://127.0.0.1:3001`
-- Health: `http://127.0.0.1:4000/api/health`
-
-`npm run db:migrate` applies migrations without the HTTP server.
+That layout is client `3001` + API `4000`, as before. `npm run db:migrate` applies migrations without starting the HTTP server.
 
 ## Tests
 
@@ -214,17 +222,17 @@ Last local result (2026-09-09): **20** unit tests passed; **13** isolated live t
 ## Current limits
 
 - Demo only: no payments, no SMS
-- App processes still run on the host; Compose starts Postgres only
 - Guest bookings are not linked to accounts, even if the phone matches
-- `test:live` wipes `trimtime_test` at the start of each run
-- Proof of correctness is the API suite, not a physical-phone click-through of every screen
+- `test:live` still needs Node on the host and wipes `trimtime_test` at the start of each run
+- Do not run host `npm run dev` while `trimtime-app` is bound to port 3001
+- Proof of correctness is the API suite plus Docker health/persistence checks, not a physical-phone click-through of every screen
 
 ## Git
 
-`.env`, dumps, keys, and `node_modules` are gitignored. Commit `.env.example`, screenshots, and `package-lock.json`.
+`.env`, dumps, keys, and `node_modules` are gitignored. Commit `.env.example`, screenshots, and `package-lock.json`. Do not copy `.env` into Docker images.
 
 Default branch: `main`. Later work: short-lived branches and pull requests.
 
 ## Next
 
-Dockerize the app, then CI, then an AWS design and cost review **before** any paid resources or a domain. See [`ROADMAP.md`](ROADMAP.md).
+CI, then an AWS design and cost review **before** any paid resources or a domain. See [`ROADMAP.md`](ROADMAP.md).

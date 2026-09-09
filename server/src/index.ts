@@ -16,10 +16,11 @@ async function start() {
   startPendingExpiryLoop();
 
   const port = Number(process.env.API_PORT ?? 4000);
+  const host = process.env.LISTEN_HOST ?? "127.0.0.1";
   const app = createApp();
 
-  app.listen(port, "127.0.0.1", () => {
-    console.log(`TrimTime API running at http://127.0.0.1:${port}`);
+  app.listen(port, host, () => {
+    console.log(`TrimTime API running at http://${host}:${port}`);
   });
 }
 

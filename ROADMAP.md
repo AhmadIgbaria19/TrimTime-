@@ -139,11 +139,21 @@ Mutating tests run only against **`trimtime_test`** (created on the same Docker 
 
 ## Phase 4 — App in Docker
 
-**Status:** `todo`
+**Status:** `done`
 
 Production-oriented Dockerfile, `.dockerignore`, Compose for app + Postgres, persistent volume, runtime config, healthchecks, explicit migrations.
 
 **Success:** clean machine follows README, **no Node on the host**, data survives container restart. Do not remove `trimtime_pgdata`. Do not touch other stacks on port `3000`.
+
+**Done**
+
+- Multi-stage `Dockerfile` builds the Vite client and runs the Express API with `tsx`.
+- `.dockerignore` keeps `.env`, Git, docs, and `node_modules` out of the image.
+- Compose starts `trimtime-app` + existing `trimtime-postgres` on volume `trimtime_pgdata`. Inside the app container `PGHOST=db` / `PGPORT=5432`. Secrets come from host `.env` at runtime.
+- App listens on `0.0.0.0:3001` in Docker and serves the SPA + `/api` from one origin.
+- Host `npm run up` → `docker compose up -d --build --wait`. `docker compose down` without `-v`.
+
+**Tests:** Image built. `trimtime-app` + `trimtime-postgres` healthy. `/api/health` ok. SPA 200, catalog LAMSA. Admin login 200; anonymous admin 401; admin cannot POST `/api/bookings` (403). Guest book 201 Confirmed, salon cancel 200. After `docker compose restart`: 4 users, salon LAMSA, persistence row kept. Volume `trimtime_pgdata` not removed. `task-app` on port 3000 untouched. Host `npm test` 20 passed. Did not run `test:live` through the container. No physical-phone UI pass.
 
 ---
 
@@ -219,4 +229,5 @@ A live walkthrough Ahmd can explain: book a visit, ship a change through the pip
 
 ## Session notes
 
-- 2026-09-09: Phase 3 done. README (EN), gitignore, `.env` kept out. Local git `main` commit. Waiting for Ahmd’s GitHub URL before remote/push. Phase 4 (Docker app) not started.
+- 2026-09-09: Phase 3 done. README (EN), gitignore, `.env` kept out. Local git `main` commit. Waiting for Ahmd’s GitHub URL before remote/push.
+- 2026-09-09: Phase 4 Docker app on branch `docker-app`. Volume `trimtime_pgdata` kept. No CI/AWS.

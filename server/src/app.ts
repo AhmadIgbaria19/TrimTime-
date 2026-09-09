@@ -1,3 +1,4 @@
+import path from "node:path";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
@@ -33,6 +34,26 @@ export function createApp() {
   app.use("/api/availability", availabilityRouter);
   app.use("/api/bookings", bookingsRouter);
   app.use("/api/admin", adminRouter);
+
+  const clientDist = process.env.CLIENT_DIST;
+  if (clientDist) {
+    app.use(express.static(clientDist));
+    app.use((req, res, next) => {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        next();
+        return;
+      }
+      if (req.path.startsWith("/api")) {
+        next();
+        return;
+      }
+      res.sendFile(path.resolve(clientDist, "index.html"), (error) => {
+        if (error) {
+          next(error);
+        }
+      });
+    });
+  }
 
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error(error);

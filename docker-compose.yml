@@ -18,6 +18,37 @@ services:
       retries: 10
       start_period: 10s
 
+  app:
+    build: .
+    image: trimtime-app:local
+    container_name: trimtime-app
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      API_PORT: "3001"
+      CLIENT_PORT: "3001"
+      LISTEN_HOST: "0.0.0.0"
+      CLIENT_DIST: /app/client/dist
+    ports:
+      - "127.0.0.1:${CLIENT_PORT:-3001}:3001"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 25s
+
 volumes:
   trimtime_pgdata:
     name: trimtime_pgdata

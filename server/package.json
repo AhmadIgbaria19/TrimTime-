@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
     "migrate": "tsx src/db/migrate.ts",
     "test": "tsx --test --test-concurrency=1 src/modules/availability/slots.test.ts src/modules/bookings/cancel-policy.test.ts src/modules/bookings/admin-actions.test.ts src/modules/bookings/expire-pending.test.ts",
     "test:live": "tsx src/db/run-live-tests.ts"
