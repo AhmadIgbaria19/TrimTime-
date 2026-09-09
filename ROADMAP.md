@@ -159,11 +159,21 @@ Production-oriented Dockerfile, `.dockerignore`, Compose for app + Postgres, per
 
 ## Phase 5 — CI
 
-**Status:** `todo`
+**Status:** `done` (workflow added; green run waits for a GitHub pull request)
 
 GitHub Actions: lint/typecheck, tests, app build, Docker image. Tests use an isolated database, never production.
 
 **Success:** a PR with a deliberate error fails CI; after the fix it passes. Explain each pipeline stage.
+
+**Done**
+
+- Workflow: `.github/workflows/ci.yml` on pull requests and `main`.
+- Job 1 — typecheck + unit tests + client `vite build` (no ESLint package in this repo).
+- Job 2 — `npm run test:live` on a GitHub-hosted Postgres 16. Env uses CI-only passwords. `prepare-test-db` still refuses unless `PGDATABASE` is not `trimtime_test` at reset time, then the suite switches to `trimtime_test`.
+- Job 3 — `docker build` of the app image, no push to a registry.
+- No production `.env`, no laptop volume, no AWS.
+
+**Tests:** workflow files added on branch `ci`. First GitHub run happens when that branch is pushed and a PR is opened. The deliberate fail-then-fix demo is the next check on GitHub, not a local mock.
 
 ---
 
@@ -231,3 +241,4 @@ A live walkthrough Ahmd can explain: book a visit, ship a change through the pip
 
 - 2026-09-09: Phase 3 done. README (EN), gitignore, `.env` kept out. Local git `main` commit. Waiting for Ahmd’s GitHub URL before remote/push.
 - 2026-09-09: Phase 4 Docker app on branch `docker-app`. Volume `trimtime_pgdata` kept. No CI/AWS.
+- 2026-09-10: Phase 5 workflow added on branch `ci`. No AWS. Green GitHub run waits for a PR.

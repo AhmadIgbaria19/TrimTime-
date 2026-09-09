@@ -10,7 +10,8 @@
     "db:up": "docker compose up -d --wait",
     "db:migrate": "npm run migrate -w server",
     "test": "npm run test -w server",
-    "test:live": "npm run test:live -w server"
+    "test:live": "npm run test:live -w server",
+    "typecheck": "tsc --noEmit -p client/tsconfig.json"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

@@ -205,6 +205,18 @@ npm run test:live
 
 Last local result (2026-09-09): **20** unit tests passed; **13** isolated live tests passed (overlap race, idempotency, isolation, snapshots, restart, Expired, guest row, salon cancel). Live `trimtime` was unchanged.
 
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on pull requests and on pushes to `main`. There is no ESLint yet; “lint/typecheck” is `tsc` on the client. Jobs do not read the local salon `.env`.
+
+| Job | What it proves |
+| --- | --- |
+| Typecheck, unit tests, client build | TypeScript on the SPA, the 20 unit tests, and `vite build` |
+| Isolated Postgres live tests | `npm run test:live` against a fresh GitHub `trimtime` / `trimtime_test` pair, never the laptop volume |
+| Docker image | `docker build` of the same multi-stage Dockerfile used locally |
+
+A red X on a pull request means that job failed. Fix the commit and push again; do not merge until all three are green.
+
 ## What already works
 
 - Public catalog and availability in `Asia/Jerusalem` (hours, breaks, one-time closes)
@@ -235,4 +247,4 @@ Default branch: `main`. Later work: short-lived branches and pull requests.
 
 ## Next
 
-CI, then an AWS design and cost review **before** any paid resources or a domain. See [`ROADMAP.md`](ROADMAP.md).
+An AWS design and cost review **before** any paid resources or a domain. See [`ROADMAP.md`](ROADMAP.md).

@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    name: Typecheck, unit tests, client build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Typecheck the client
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build the client
+        run: npm run build -w client
+
+  live:
+    name: Isolated Postgres live tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: trimtime
+      PGPASSWORD: ci_only_not_production
+      PGDATABASE: trimtime
+      PGDATABASE_TEST: trimtime_test
+      ADMIN_NAME: Salon Owner
+      ADMIN_PHONE: "0500000001"
+      ADMIN_PASSWORD: CiAdminPass12
+      SESSION_SECRET: ci_session_secret_not_for_production
+    services:
+      postgres:
+        image: postgres:16.4-alpine
+        env:
+          POSTGRES_USER: trimtime
+          POSTGRES_PASSWORD: ci_only_not_production
+          POSTGRES_DB: trimtime
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trimtime -d trimtime"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Run isolated live tests
+        run: npm run test:live
+
+  image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Build the app image
+        run: docker build -t trimtime-app:ci .
