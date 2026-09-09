@@ -36,11 +36,11 @@ function isViewTab(value: string | null): value is ViewTab {
   return value === "schedule" || value === "pending";
 }
 
-function isStatusFilter(value: string | null) {
+function isStatusFilter(value: string | null): value is string {
   return value === "all" || (value !== null && (SCHEDULE_STATUSES as readonly string[]).includes(value));
 }
 
-function isIsoDate(value: string | null) {
+function isIsoDate(value: string | null): value is string {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
 }
 
@@ -152,14 +152,19 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
   const [workingId, setWorkingId] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<{ id: number; action: AdminBookingAction } | null>(null);
   const [cancelReason, setCancelReason] = useState("");
-  const [tab, setTab] = useState<ViewTab>(() => (isViewTab(searchParams.get("tab")) ? searchParams.get("tab")! : "schedule"));
-  const [date, setDate] = useState(() =>
-    isIsoDate(searchParams.get("date")) ? searchParams.get("date")! : zonedToday(timeZone),
-  );
+  const [tab, setTab] = useState<ViewTab>(() => {
+    const raw = searchParams.get("tab");
+    return isViewTab(raw) ? raw : "schedule";
+  });
+  const [date, setDate] = useState(() => {
+    const raw = searchParams.get("date");
+    return isIsoDate(raw) ? raw : zonedToday(timeZone);
+  });
   const [barberId, setBarberId] = useState("");
-  const [status, setStatus] = useState(() =>
-    isStatusFilter(searchParams.get("status")) ? searchParams.get("status")! : "Confirmed",
-  );
+  const [status, setStatus] = useState(() => {
+    const raw = searchParams.get("status");
+    return isStatusFilter(raw) ? raw : "Confirmed";
+  });
   const [query, setQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [jumpTo, setJumpTo] = useState<AdminBooking | null>(null);

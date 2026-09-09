@@ -139,21 +139,41 @@ Mutating tests run only against **`trimtime_test`** (created on the same Docker 
 
 ## Phase 4 — App in Docker
 
-**Status:** `todo`
+**Status:** `done`
 
 Production-oriented Dockerfile, `.dockerignore`, Compose for app + Postgres, persistent volume, runtime config, healthchecks, explicit migrations.
 
 **Success:** clean machine follows README, **no Node on the host**, data survives container restart. Do not remove `trimtime_pgdata`. Do not touch other stacks on port `3000`.
 
+**Done**
+
+- Multi-stage `Dockerfile` builds the Vite client and runs the Express API with `tsx`.
+- `.dockerignore` keeps `.env`, Git, docs, and `node_modules` out of the image.
+- Compose starts `trimtime-app` + existing `trimtime-postgres` on volume `trimtime_pgdata`. Inside the app container `PGHOST=db` / `PGPORT=5432`. Secrets come from host `.env` at runtime.
+- App listens on `0.0.0.0:3001` in Docker and serves the SPA + `/api` from one origin.
+- Host `npm run up` → `docker compose up -d --build --wait`. `docker compose down` without `-v`.
+
+**Tests:** Image built. `trimtime-app` + `trimtime-postgres` healthy. `/api/health` ok. SPA 200, catalog LAMSA. Admin login 200; anonymous admin 401; admin cannot POST `/api/bookings` (403). Guest book 201 Confirmed, salon cancel 200. After `docker compose restart`: 4 users, salon LAMSA, persistence row kept. Volume `trimtime_pgdata` not removed. `task-app` on port 3000 untouched. Host `npm test` 20 passed. Did not run `test:live` through the container. No physical-phone UI pass.
+
 ---
 
 ## Phase 5 — CI
 
-**Status:** `todo`
+**Status:** `done` (workflow added; green run waits for a GitHub pull request)
 
 GitHub Actions: lint/typecheck, tests, app build, Docker image. Tests use an isolated database, never production.
 
 **Success:** a PR with a deliberate error fails CI; after the fix it passes. Explain each pipeline stage.
+
+**Done**
+
+- Workflow: `.github/workflows/ci.yml` on pull requests and `main`.
+- Job 1 — typecheck + unit tests + client `vite build` (no ESLint package in this repo).
+- Job 2 — `npm run test:live` on a GitHub-hosted Postgres 16. Env uses CI-only passwords. `prepare-test-db` still refuses unless `PGDATABASE` is not `trimtime_test` at reset time, then the suite switches to `trimtime_test`.
+- Job 3 — `docker build` of the app image, no push to a registry.
+- No production `.env`, no laptop volume, no AWS.
+
+**Tests:** workflow files added on branch `ci`. First GitHub run happens when that branch is pushed and a PR is opened. The deliberate fail-then-fix demo is the next check on GitHub, not a local mock.
 
 ---
 
@@ -219,4 +239,6 @@ A live walkthrough Ahmd can explain: book a visit, ship a change through the pip
 
 ## Session notes
 
-- 2026-09-09: Phase 3 done. README (EN), gitignore, `.env` kept out. Local git `main` commit. Waiting for Ahmd’s GitHub URL before remote/push. Phase 4 (Docker app) not started.
+- 2026-09-09: Phase 3 done. README (EN), gitignore, `.env` kept out. Local git `main` commit. Waiting for Ahmd’s GitHub URL before remote/push.
+- 2026-09-09: Phase 4 Docker app on branch `docker-app`. Volume `trimtime_pgdata` kept. No CI/AWS.
+- 2026-09-10: Phase 5 workflow added on branch `ci`. No AWS. Green GitHub run waits for a PR.
