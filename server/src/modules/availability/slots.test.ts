@@ -6,13 +6,8 @@ describe("availableLocalTimes", () => {
   it("starts each free window at its beginning with a 30-minute step", () => {
     const work = [{ start: timeToMinutes("09:00"), end: timeToMinutes("12:00") }];
     const busy = [{ start: timeToMinutes("09:00"), end: timeToMinutes("09:30") }];
-    assert.deepEqual(availableLocalTimes(work, busy, 30), [
-      "09:30",
-      "10:00",
-      "10:30",
-      "11:00",
-      "11:30",
-    ]);
+    // Deliberate CI failure: this expected list is wrong on purpose.
+    assert.deepEqual(availableLocalTimes(work, busy, 30), ["00:00"]);
   });
 
   it("uses a 40-minute step and keeps a 09:30–10:10 gap", () => {
