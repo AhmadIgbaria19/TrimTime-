@@ -148,6 +148,9 @@ TirmTimeProject/
   client/                 SPA (public site, book, My Bookings, admin desk)
   server/                 API, SQL migrations, unit + isolated live tests
   docs/screenshots/       README product tour
+  docs/aws-design.md      Phase 6 AWS architecture and cost
+  docs/aws-next.md        TLS, arm64, and deploy work still required
+  infra/                  Terraform + Ansible (local prep; no apply)
   db/init.sql             First-boot Postgres hook (tables come from migrations)
   Dockerfile              Multi-stage app image
   docker-compose.yml      App + Postgres
@@ -217,6 +220,15 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on pull requests and on pushes 
 
 A red X on a pull request means that job failed. Fix the commit and push again; do not merge until all three are green.
 
+On **`push` to `main` only**, after those three jobs succeed:
+
+| Job | What it does |
+| --- | --- |
+| Publish linux/arm64 to ECR | `docker buildx --platform linux/arm64` of **that commit**, tag = full git SHA, push to ECR via **OIDC** (no AWS keys in the repo) |
+| Deploy SHA to EC2 | GitHub Environment **`production`** (required reviewer) then SSM Run Command `trimtime-deploy` of the **same SHA** |
+
+Pull requests never publish or deploy. Set repository variables `AWS_ROLE_ARN`, `EC2_INSTANCE_ID`, and `SITE_URL` after Terraform has created the OIDC role. See [`infra/iam/operator-setup.md`](infra/iam/operator-setup.md).
+
 ## What already works
 
 - Public catalog and availability in `Asia/Jerusalem` (hours, breaks, one-time closes)
@@ -247,4 +259,4 @@ Default branch: `main`. Later work: short-lived branches and pull requests.
 
 ## Next
 
-An AWS design and cost review **before** any paid resources or a domain. See [`ROADMAP.md`](ROADMAP.md).
+Local AWS files (Phase 7a) are on branch `aws-prep`. Account is open; **apply is not approved yet**. Prep notes: [`docs/aws-7b-prep.md`](docs/aws-7b-prep.md). See [`ROADMAP.md`](ROADMAP.md).

@@ -1,0 +1,34 @@
+#!/bin/bash
+# Render /etc/trimtime/app.env from SSM Parameter Store.
+# Run on the EC2 as root after parameters exist. Values never belong in Git.
+set -euo pipefail
+
+REGION="{{ aws_region }}"
+PREFIX="{{ ssm_path_prefix }}"
+DEST="{{ trimtime_env_file }}"
+TMP="$(mktemp)"
+trap 'rm -f "$TMP"' EXIT
+
+umask 077
+
+get_param() {
+  local name="$1"
+  aws ssm get-parameter --region "$REGION" --name "${PREFIX}/${name}" --with-decryption \
+    --query 'Parameter.Value' --output text
+}
+
+{
+  echo "PGHOST=$(get_param pghost)"
+  echo "PGPORT=$(get_param pgport)"
+  echo "PGUSER=$(get_param pguser)"
+  echo "PGPASSWORD=$(get_param pgpassword)"
+  echo "PGDATABASE=$(get_param pgdatabase)"
+  echo "SESSION_SECRET=$(get_param session_secret)"
+  echo "ADMIN_NAME=$(get_param admin_name)"
+  echo "ADMIN_PHONE=$(get_param admin_phone)"
+  echo "ADMIN_PASSWORD=$(get_param admin_password)"
+  echo "PGSSLROOTCERT=/etc/ssl/certs/rds-eu-central-1-bundle.pem"
+} > "$TMP"
+
+install -m 0600 -o root -g root "$TMP" "$DEST"
+echo "Wrote $DEST"

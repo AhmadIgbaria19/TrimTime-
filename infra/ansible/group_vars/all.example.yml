@@ -1,0 +1,6 @@
+# Copy to all.local.yml (gitignored) after terraform apply.
+# Values come from terraform output — not from Git.
+
+# ecr_repository_url: "<terraform output ecr_repository_url>"
+# trimtime_sha: "<40-char git SHA whose CI run was green>"
+# aws_region: eu-central-1

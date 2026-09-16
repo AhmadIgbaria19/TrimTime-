@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (gitignored).
+# Bucket names are global. Use your real AWS account id when the account is open.
+# Example shape only — this is not a real bucket and not a real account:
+#   bucket_name = "trimtime-tfstate-YOUR-ACCOUNT-ID"
+
+aws_region  = "eu-central-1"
+bucket_name = "trimtime-tfstate-REPLACE-ME"

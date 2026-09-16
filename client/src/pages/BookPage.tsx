@@ -6,6 +6,7 @@ import { MonthCalendar } from "../components/MonthCalendar";
 import { useAuth } from "../context/AuthContext";
 import { useSalon } from "../context/SalonContext";
 import { addIsoDays, datesInRange, isoWeekdaySun0, zonedToday } from "../lib/dates";
+import { newIdempotencyKey } from "../lib/id";
 
 type Slot = { localTime: string; start: string | null };
 
@@ -32,7 +33,7 @@ export function BookPage() {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<PublicBooking | null>(null);
-  const idempotencyKey = useRef(crypto.randomUUID());
+  const idempotencyKey = useRef(newIdempotencyKey());
 
   const timeZone = catalog?.salon.timezone || "Asia/Jerusalem";
   const horizonDays = catalog?.salon.bookingHorizonDays ?? 30;
@@ -83,7 +84,7 @@ export function BookPage() {
     setSelectedTime("");
     setError("");
     setCreated(null);
-    idempotencyKey.current = crypto.randomUUID();
+    idempotencyKey.current = newIdempotencyKey();
 
     if (!serviceId || !barberId || !date) {
       setLoadingSlots(false);
@@ -145,7 +146,7 @@ export function BookPage() {
           .then((data) => {
             setAvailability(data);
             setSelectedTime("");
-            idempotencyKey.current = crypto.randomUUID();
+            idempotencyKey.current = newIdempotencyKey();
           })
           .catch(() => undefined);
       }
@@ -184,7 +185,7 @@ export function BookPage() {
                 setCreated(null);
                 setSelectedTime("");
                 setNote("");
-                idempotencyKey.current = crypto.randomUUID();
+                idempotencyKey.current = newIdempotencyKey();
               }}
             >
               Book another time

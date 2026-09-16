@@ -1,0 +1,35 @@
+#!/bin/bash
+# Restart the previous image SHA. Does NOT reverse Postgres migrations.
+set -euo pipefail
+
+DIR="{{ trimtime_dir }}"
+PIN=/etc/trimtime/image-sha
+PREV=/etc/trimtime/image-sha.prev
+COMPOSE=(docker compose --project-directory "$DIR" -f "$DIR/compose.yml")
+HEALTH="http://127.0.0.1:{{ app_bind_port }}/api/health"
+
+OLD="$(tr -d '[:space:]' < "$PREV" || true)"
+if [[ -z "$OLD" ]]; then
+  echo "No previous SHA in $PREV" >&2
+  exit 1
+fi
+
+export TRIMTIME_SHA="$OLD"
+printf '%s\n' "$OLD" > "$PIN"
+"${COMPOSE[@]}" up -d --force-recreate --remove-orphans app
+
+ok=0
+for _ in $(seq 1 30); do
+  if curl -fsS "$HEALTH" >/dev/null; then
+    ok=1
+    break
+  fi
+  sleep 2
+done
+
+if [[ "$ok" -ne 1 ]]; then
+  echo "Rollback to $OLD failed health. Schema may be incompatible with this image." >&2
+  exit 1
+fi
+
+echo "Rolled back to $OLD"

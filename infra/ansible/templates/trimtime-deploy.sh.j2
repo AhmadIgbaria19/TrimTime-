@@ -1,0 +1,50 @@
+#!/bin/bash
+# Deploy a git-SHA image already in ECR (linux/arm64).
+# On the laptop FIRST: git diff "$LIVE" "$NEW" -- server/src/db/migrations
+# Image rollback does not undo SQL. See docs/aws-design.md §7.
+set -euo pipefail
+
+NEW_SHA="${1:?usage: trimtime-deploy <full-git-sha>}"
+DIR="{{ trimtime_dir }}"
+PIN=/etc/trimtime/image-sha
+PREV=/etc/trimtime/image-sha.prev
+COMPOSE=(docker compose --project-directory "$DIR" -f "$DIR/compose.yml")
+HEALTH="http://127.0.0.1:{{ app_bind_port }}/api/health"
+
+if [[ ! -s /etc/trimtime/app.env ]]; then
+  echo "Missing {{ trimtime_env_file }} — run trimtime-fetch-env first." >&2
+  exit 1
+fi
+
+LIVE="$(tr -d '[:space:]' < "$PIN" || true)"
+if [[ -n "$LIVE" ]]; then
+  printf '%s\n' "$LIVE" > "$PREV"
+fi
+
+aws ecr get-login-password --region "{{ aws_region }}" \
+  | docker login --username AWS --password-stdin "{{ ecr_repository_url }}"
+
+export TRIMTIME_SHA="$NEW_SHA"
+"${COMPOSE[@]}" pull app
+printf '%s\n' "$NEW_SHA" > "$PIN"
+"${COMPOSE[@]}" up -d --force-recreate --remove-orphans app
+
+ok=0
+for _ in $(seq 1 30); do
+  if curl -fsS "$HEALTH" >/dev/null; then
+    ok=1
+    break
+  fi
+  sleep 2
+done
+
+if [[ "$ok" -ne 1 ]]; then
+  echo "Health check failed for $NEW_SHA. Attempting rollback to previous image." >&2
+  echo "If a new migration already applied, rollback may fail. Fix forward or restore RDS to a new instance." >&2
+  /usr/local/sbin/trimtime-rollback || true
+  exit 1
+fi
+
+echo "Deployed $NEW_SHA"
+curl -fsS "$HEALTH" || true
+echo

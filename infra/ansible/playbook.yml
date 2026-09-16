@@ -1,0 +1,166 @@
+---
+- name: TrimTime EC2 baseline
+  hosts: trimtime
+  become: true
+  tasks:
+    - name: Check for local override file
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/group_vars/all.local.yml"
+      register: trimtime_local_vars
+
+    - name: Load local overrides
+      ansible.builtin.include_vars: "{{ playbook_dir }}/group_vars/all.local.yml"
+      when: trimtime_local_vars.stat.exists
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install baseline packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - nginx
+          - python3
+          - unzip
+        state: present
+
+    - name: Install AWS CLI v2 if missing
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if command -v aws >/dev/null 2>&1; then
+          exit 0
+        fi
+        curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o /tmp/awscliv2.zip
+        unzip -q /tmp/awscliv2.zip -d /tmp
+        /tmp/aws/install
+        rm -rf /tmp/aws /tmp/awscliv2.zip
+      args:
+        creates: /usr/local/bin/aws
+
+    - name: Ensure SSM Agent is installed (Ubuntu / snap)
+      ansible.builtin.command: snap install amazon-ssm-agent --classic
+      register: trimtime_snap_ssm
+      changed_when: "'amazon-ssm-agent' in trimtime_snap_ssm.stdout"
+      failed_when: false
+
+    - name: Enable SSM Agent systemd unit if present
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - snap.amazon-ssm-agent.amazon-ssm-agent.service
+        - amazon-ssm-agent
+      failed_when: false
+
+    - name: Install Docker Engine (Ubuntu packages)
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        state: present
+
+    - name: Enable Docker
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Allow ubuntu to use Docker
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: true
+
+    - name: Create application directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - "{{ trimtime_dir }}"
+        - /etc/trimtime
+        - /var/lib/trimtime
+
+    - name: Download RDS CA bundle for eu-central-1
+      ansible.builtin.get_url:
+        url: https://truststore.pki.rds.amazonaws.com/eu-central-1/eu-central-1-bundle.pem
+        dest: "{{ rds_ca_dest }}"
+        mode: "0644"
+
+    - name: Install Nginx site
+      ansible.builtin.template:
+        src: nginx-trimtime.conf.j2
+        dest: /etc/nginx/sites-available/trimtime
+        mode: "0644"
+      notify: Reload nginx
+
+    - name: Enable Nginx site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/trimtime
+        dest: /etc/nginx/sites-enabled/trimtime
+        state: link
+      notify: Reload nginx
+
+    - name: Disable default Nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload nginx
+
+    - name: Install Compose file
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ trimtime_dir }}/compose.yml"
+        mode: "0644"
+
+    - name: Install env fetch script
+      ansible.builtin.template:
+        src: trimtime-fetch-env.sh.j2
+        dest: /usr/local/sbin/trimtime-fetch-env
+        mode: "0750"
+
+    - name: Install deploy script
+      ansible.builtin.template:
+        src: trimtime-deploy.sh.j2
+        dest: /usr/local/sbin/trimtime-deploy
+        mode: "0750"
+
+    - name: Install rollback script
+      ansible.builtin.template:
+        src: trimtime-rollback.sh.j2
+        dest: /usr/local/sbin/trimtime-rollback
+        mode: "0750"
+
+    - name: Seed image pin files if missing
+      ansible.builtin.copy:
+        dest: "{{ item }}"
+        content: ""
+        force: false
+        mode: "0644"
+      loop:
+        - /etc/trimtime/image-sha
+        - /etc/trimtime/image-sha.prev
+
+    - name: Env file placeholder (root-only; filled by trimtime-fetch-env from SSM)
+      ansible.builtin.copy:
+        dest: "{{ trimtime_env_file }}"
+        content: |
+          # Rendered on the instance by /usr/local/sbin/trimtime-fetch-env
+          # Do not copy secrets into Git.
+        force: false
+        owner: root
+        group: root
+        mode: "0600"
+
+  handlers:
+    - name: Reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

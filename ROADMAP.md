@@ -16,7 +16,7 @@ Do not add tools or features only to lengthen the stack.
 - After each step: what changed, how to run and test it, what was actually tested, what is still missing; then **stop for approval**.
 - Keep English LTR UI, black/gold identity, current data and permissions.
 - Do not stop other projects or delete Docker volumes. Keep current ports (`3001` client, `4000` API, Postgres `5434`).
-- Secrets stay out of Git. No paid AWS resources or domain purchase before architecture and cost are approved.
+- Secrets stay out of Git. No paid AWS resources until Ahmd approves **apply** (Phase 7b). Domain purchase stays later.
 
 ### Status values
 
@@ -159,7 +159,7 @@ Production-oriented Dockerfile, `.dockerignore`, Compose for app + Postgres, per
 
 ## Phase 5 — CI
 
-**Status:** `done` (workflow added; green run waits for a GitHub pull request)
+**Status:** `done` (workflow on `main`; fail-then-fix proven on GitHub)
 
 GitHub Actions: lint/typecheck, tests, app build, Docker image. Tests use an isolated database, never production.
 
@@ -173,37 +173,72 @@ GitHub Actions: lint/typecheck, tests, app build, Docker image. Tests use an iso
 - Job 3 — `docker build` of the app image, no push to a registry.
 - No production `.env`, no laptop volume, no AWS.
 
-**Tests:** workflow files added on branch `ci`. First GitHub run happens when that branch is pushed and a PR is opened. The deliberate fail-then-fix demo is the next check on GitHub, not a local mock.
+**Tests (GitHub, 2026-09-10):** PR [#2](https://github.com/AhmadIgbaria19/TrimTime-/pull/2) (`ci`) merged to `main`; Actions on `main` succeeded. PR [#3](https://github.com/AhmadIgbaria19/TrimTime-/pull/3) (`ci-fail-demo`): commit `2d762fa` **failed**; fix `f85c5a8` **succeeded** ([run](https://github.com/AhmadIgbaria19/TrimTime-/actions/runs/34489569300)). Local `npm test` (20 passed) is not a substitute for that run. **PR #3 is still open — not merged.**
 
 ---
 
 ## Phase 6 — AWS design and cost review
 
-**Status:** `todo` — **no paid resources until approved**
+**Status:** `done` (architecture **accepted for local file prep**; cost still estimated; **no AWS resources**)
 
-Draft: EC2 (app), ECR (image), RDS PostgreSQL, Nginx in front. Document network, IAM, secrets, domain, HTTPS, monthly cost, availability limits. Database **not** public on the internet.
+Design: [`docs/aws-design.md`](docs/aws-design.md). Operator notes: [`docs/aws-next.md`](docs/aws-next.md). Layout: [`infra/README.md`](infra/README.md).
 
-**Do not create paid resources or buy a domain before Ahmd approves architecture and cost.**
+**Accepted (local prep only):** commercial `eu-central-1`; one public `t4g.small`; RDS PostgreSQL 16 `db.t4g.micro` Single-AZ with a two-AZ private DB subnet group; ECR; Terraform ≥ 1.11 + S3 `use_lockfile`; Ansible; no ALB; no NAT Gateway; RDS-managed master password in Secrets Manager; app secrets in SSM.
+
+Cost remains **~$42/month USD estimated** (several Frankfurt instance-hour lines unverified on official HTML). Free Tier not assumed. AWS account **reactivated 2026-09-16**; a prior **$273** invoice is under waiver review (not paid from this project). **No TrimTime resources created yet.**
+
+**Not done in Phase 6:** `terraform apply`, Ansible on a host, domain, CD, application TLS, arm64 CI.
 
 ---
 
-## Phase 7 — Provision and first deploy
+## Phase 7a — Local Terraform and Ansible files
 
-**Status:** `todo` (blocked on phase 6 approval)
+**Status:** `done` (files on branch `aws-prep`; local validate passed; **not** applied)
 
-Terraform with a locked remote state. Repeatable Linux + Docker + Nginx (Ansible only if we adopt it). Image from ECR, app to RDS, safe migrations, stable URL + HTTPS.
+## Phase 7b — Provision and first deploy on AWS
 
-**Success:** open the site from a phone on an external network, book, review in admin, this PC off.
+**Status:** `todo` (account open; **apply blocked** until Ahmd approves the plan and cost)
+
+Read-only audit 2026-09-16: no EC2/EIP/NAT/ALB/RDS in the three Regions checked. Leftover non-TrimTime storage: ECR `vprofile-appimage`, four old S3 buckets. IAM `terraadmin` has AdministratorAccess, **no MFA**. Root MFA is on; no root keys. **No AWS Budgets** returned. CLI default region is `us-east-1`; TrimTime is `eu-central-1`.
+
+First resource after approval: S3 state bucket (`infra/terraform/bootstrap`). Then app stack `plan`/`apply`. Prep notes: [`docs/aws-7b-prep.md`](docs/aws-7b-prep.md), operator steps: [`infra/iam/operator-setup.md`](infra/iam/operator-setup.md).
+
+After reopen: **audit billing and leftover resources first.** Then: bootstrap the S3 state bucket; `terraform apply`; Ansible on the EC2; app secrets in SSM; bootstrap DB role; arm64 image from a green CI SHA; health; phone test with this PC off.
+
+Terraform ≥ 1.11, S3 state + `use_lockfile`. Migrations are forward-only; image rollback is allowed only when the migration gate says the previous SHA can run on the live schema.
+
+**Success:** open the site from a phone on an external network, book, review in admin, this PC off. Local Docker / `terraform validate` is not that proof.
 
 ---
 
 ## Phase 8 — CD
 
-**Status:** `todo`
+**Status:** `in_review` (jobs in `ci.yml`; OIDC provider + role **applied** 2026-09-17; GitHub Environment and variables still needed)
 
-CI success → versioned image → ECR → AWS. GitHub → AWS via **OIDC** and least privilege. Post-deploy health check, failure behaviour, rollback, and DB migration compatibility.
+Keep **one** workflow file: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). There is **no** second workflow for CD.
 
-**Success:** a small change ships through the pipeline and appears on the live site.
+**Jobs (order)**
+
+| Job | When | Role |
+| --- | --- | --- |
+| `quality` | PR and `push` to `main` | Typecheck, unit tests, client build |
+| `live` | PR and `push` to `main` | Isolated Postgres `test:live` |
+| `image` | PR and `push` to `main` | `docker build` smoke on the runner (amd64 on `ubuntu-latest`) |
+| `publish` | **`push` to `main` only**, after `quality` + `live` + `image` | `docker buildx --platform linux/arm64` from **that git SHA**; push to ECR tagged with the **full SHA** |
+| `deploy` | **`push` to `main` only**, after `publish` | Pull/run **that same SHA** on the TrimTime EC2 (SSM Run Command). **Manual approval** (GitHub Environment `production` required reviewer) **before** production deploy |
+
+Pull requests run the three checks only. They must not publish to ECR or deploy.
+
+GitHub → AWS via **OIDC** (`infra/terraform/github_oidc.tf`). No long-lived AWS keys in the repo. The amd64 `image` job is a Dockerfile check, not the artifact that runs on `t4g.small`.
+
+**Still needed before the first pipeline deploy:**
+
+1. ~~`terraform apply` of the GitHub OIDC role~~ **done 2026-09-17** (`trimtime-github-actions`).
+2. Repository variables `AWS_ROLE_ARN`, `EC2_INSTANCE_ID`, `SITE_URL`.
+3. GitHub Environment `production` with a required reviewer.
+4. Merge/push to **`main`** (this branch does not trigger `publish`/`deploy`).
+
+**Success:** a small change on `main` is checked, published as arm64, approved, then appears on the live site.
 
 ---
 
@@ -236,9 +271,22 @@ A live walkthrough Ahmd can explain: book a visit, ship a change through the pip
 | 2026-09-09 | Guest booking | Name/phone/note on the booking row; no user; no phone auto-link; hidden from My Bookings. |
 | 2026-09-09 | Docs language | README in English for the CV; session explanations in Arabic. |
 | 2026-09-09 | GitHub | Local `main` first. Remote and first push only after Ahmd creates the repo and we review the file list. |
+| 2026-09-10 | AWS region | **Accepted (local prep):** commercial `eu-central-1`. Changing Region after apply is a migration. |
+| 2026-09-10 | AWS shape | **Accepted (local prep):** one public `t4g.small` + private RDS `db.t4g.micro` Single-AZ; DB subnet group = two private AZs; skip ALB and NAT. |
+| 2026-09-10 | Secrets | **Accepted:** app secrets in SSM SecureString; RDS master via RDS-managed Secrets Manager (one secret). |
+| 2026-09-10 | Terraform state | **Accepted:** S3 `use_lockfile`, Terraform ≥ 1.11; no DynamoDB lock table. |
+| 2026-09-16 | AWS account | Reactivated. $273 prior invoice under waiver review — do not pay from this project. Apply still needs a separate go-ahead. |
+| 2026-09-16 | Budgets | Propose email alerts at **$5 / $10 / $20 actual** (not a cap). None configured yet. |
+| 2026-09-16 | CI/CD workflow | **Accepted.** One file `.github/workflows/ci.yml`. Keep `quality` / `live` / `image`. Add `publish` (arm64 → ECR) then `deploy` (same SHA → EC2). PRs = checks only. `push` to `main` = publish + deploy. Manual GitHub Environment approval before production deploy. OIDC. **This decision is not terraform apply approval.** |
+| 2026-09-17 | Phase 8 files | **Implemented in repo.** `publish`/`deploy` in `ci.yml`; `github_oidc.tf`; SSM helper `.github/scripts/ssm-deploy.sh`. OIDC role **not applied**. GitHub Environment `production` and Action variables not set yet. |
 
 ## Session notes
 
 - 2026-09-09: Phase 3 done. README (EN), gitignore, `.env` kept out. Local git `main` commit. Waiting for Ahmd’s GitHub URL before remote/push.
 - 2026-09-09: Phase 4 Docker app on branch `docker-app`. Volume `trimtime_pgdata` kept. No CI/AWS.
 - 2026-09-10: Phase 5 workflow added on branch `ci`. No AWS. Green GitHub run waits for a PR.
+- 2026-09-10: GitHub Actions on PR #3: fail (`2d762fa`) then success (`f85c5a8`). PR #3 not merged. AWS account still suspended.
+- 2026-09-10: Phase 6 design in `docs/aws-design.md` (`in_review`). No Terraform apply, no Ansible, no CD, no AWS keys.
+- 2026-09-10: Phase 6 design corrected (RDS two-AZ subnet group, TLS verify-full, S3 native lock, SSM Agent, arm64/rollback, cost sources, phases). Still `in_review`. No apply, no app/CI code changes, no commit.
+- 2026-09-16: Account reactivated. Read-only audit (no delete, no apply). Leftover ECR/S3 from old labs. `terraadmin` in eu-central-1 for TrimTime; CLI default was us-east-1. Phase 7b still waiting for apply approval.
+- 2026-09-17: Phase 8 jobs written in `ci.yml`. Terraform OIDC role ready, not applied. Not an apply go-ahead.

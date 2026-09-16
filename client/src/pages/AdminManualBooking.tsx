@@ -8,6 +8,7 @@ import {
 } from "../api/auth";
 import { formatPrice, type Catalog } from "../api/catalog";
 import { zonedToday } from "../lib/dates";
+import { newIdempotencyKey } from "../lib/id";
 
 type Slot = { localTime: string; start: string | null };
 
@@ -47,7 +48,7 @@ export function AdminManualBooking({
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const idempotencyKey = useRef(crypto.randomUUID());
+  const idempotencyKey = useRef(newIdempotencyKey());
   const panelRef = useRef<HTMLDivElement>(null);
 
   const services = catalog.services.filter((service) => service.active);
@@ -75,7 +76,7 @@ export function AdminManualBooking({
     setSlots([]);
     setError("");
     setSubmitting(false);
-    idempotencyKey.current = crypto.randomUUID();
+    idempotencyKey.current = newIdempotencyKey();
   }, [open, initialDate, catalog.salon.timezone]);
 
   useEffect(() => {
@@ -174,7 +175,7 @@ export function AdminManualBooking({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add the booking.");
       setSubmitting(false);
-      idempotencyKey.current = crypto.randomUUID();
+      idempotencyKey.current = newIdempotencyKey();
     }
   }
 

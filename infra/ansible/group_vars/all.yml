@@ -1,0 +1,13 @@
+# Non-secret defaults. Override with group_vars/all.local.yml (gitignored)
+# after terraform output. Do not put passwords here.
+
+aws_region: eu-central-1
+ssm_path_prefix: /trimtime/prod/app
+ecr_repository_url: ""
+trimtime_sha: ""
+app_bind_port: 3001
+rds_ca_dest: /etc/ssl/certs/rds-eu-central-1-bundle.pem
+enable_https: false
+server_name: "_"
+trimtime_dir: /opt/trimtime
+trimtime_env_file: /etc/trimtime/app.env

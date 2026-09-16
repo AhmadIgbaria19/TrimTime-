@@ -1,0 +1,20 @@
+# Production app only. Postgres is RDS, not this file.
+# Image tag is the git SHA. Fill TRIMTIME_SHA via /etc/trimtime/image-sha.
+
+services:
+  app:
+    image: {{ ecr_repository_url }}:${TRIMTIME_SHA}
+    container_name: trimtime-app
+    env_file:
+      - {{ trimtime_env_file }}
+    environment:
+      API_PORT: "{{ app_bind_port }}"
+      CLIENT_PORT: "{{ app_bind_port }}"
+      LISTEN_HOST: "0.0.0.0"
+      CLIENT_DIST: /app/client/dist
+      PGSSLROOTCERT: /etc/ssl/certs/rds-eu-central-1-bundle.pem
+    ports:
+      - "127.0.0.1:{{ app_bind_port }}:{{ app_bind_port }}"
+    volumes:
+      - {{ rds_ca_dest }}:/etc/ssl/certs/rds-eu-central-1-bundle.pem:ro
+    restart: unless-stopped

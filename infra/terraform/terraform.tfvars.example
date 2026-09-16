@@ -1,0 +1,19 @@
+# Copy to terraform.tfvars (gitignored). Do not put passwords here.
+# ssh_ingress_cidr example below is RFC 5737 documentation space — replace with
+# your real public /32 before apply, or leave empty to keep SSH closed (SSM only).
+
+aws_region        = "eu-central-1"
+name_prefix       = "trimtime"
+ec2_instance_type = "t4g.small"
+db_instance_class = "db.t4g.micro"
+
+# ssh_ingress_cidr = "203.0.113.10/32"
+ssh_ingress_cidr = ""
+
+ec2_key_name                   = ""
+allow_rds_master_secret_read   = false
+db_deletion_protection         = true
+
+github_repository  = "AhmadIgbaria19/TrimTime-"
+github_environment = "production"
+# github_oidc_provider_arn = ""  # set only if the account already has this IdP
