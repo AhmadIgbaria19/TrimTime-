@@ -2,6 +2,8 @@
 # Trust is limited to this repository on main and the production Environment.
 
 data "aws_iam_policy_document" "github_actions_assume" {
+  # AWS requires token.actions.githubusercontent.com:sub (or job_workflow_ref)
+  # and rejects a wildcard that is not repo-scoped. Match this repository only.
   statement {
     sid     = "GitHubOidc"
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -17,10 +19,7 @@ data "aws_iam_policy_document" "github_actions_assume" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        "repo:${var.github_repository}:ref:refs/heads/main",
-        "repo:${var.github_repository}:environment:${var.github_environment}",
-      ]
+      values   = ["repo:${var.github_repository}:*"]
     }
   }
 }

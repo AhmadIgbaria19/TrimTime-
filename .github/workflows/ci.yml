@@ -102,22 +102,16 @@ jobs:
       id-token: write
     env:
       AWS_REGION: eu-central-1
+      AWS_ROLE_ARN: arn:aws:iam::035611741535:role/trimtime-github-actions
       ECR_REPOSITORY: 035611741535.dkr.ecr.eu-central-1.amazonaws.com/trimtime-app
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
 
-      - name: Require AWS_ROLE_ARN
-        run: |
-          if [ -z "${{ vars.AWS_ROLE_ARN }}" ]; then
-            echo "Set repository variable AWS_ROLE_ARN to terraform output github_actions_role_arn."
-            exit 1
-          fi
-
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to Amazon ECR
@@ -154,36 +148,25 @@ jobs:
       id-token: write
     env:
       AWS_REGION: eu-central-1
+      AWS_ROLE_ARN: arn:aws:iam::035611741535:role/trimtime-github-actions
+      EC2_INSTANCE_ID: i-0d9dd5ce61d060acf
+      SITE_URL: http://63.188.200.186
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Require deploy variables
-        run: |
-          missing=0
-          if [ -z "${{ vars.AWS_ROLE_ARN }}" ]; then
-            echo "Set repository variable AWS_ROLE_ARN."
-            missing=1
-          fi
-          if [ -z "${{ vars.EC2_INSTANCE_ID }}" ]; then
-            echo "Set repository variable EC2_INSTANCE_ID to terraform output ec2_instance_id."
-            missing=1
-          fi
-          exit "$missing"
-
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy via SSM
-        run: bash .github/scripts/ssm-deploy.sh "${{ vars.EC2_INSTANCE_ID }}" "$GITHUB_SHA"
+        run: bash .github/scripts/ssm-deploy.sh "$EC2_INSTANCE_ID" "$GITHUB_SHA"
 
       - name: Public health check
-        if: vars.SITE_URL != ''
         run: |
-          curl -fsS "${{ vars.SITE_URL }}/api/health"
+          curl -fsS "$SITE_URL/api/health"
           echo
