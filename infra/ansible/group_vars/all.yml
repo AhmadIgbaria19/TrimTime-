@@ -7,7 +7,8 @@ ecr_repository_url: ""
 trimtime_sha: ""
 app_bind_port: 3001
 rds_ca_dest: /etc/ssl/certs/rds-eu-central-1-bundle.pem
-enable_https: false
-server_name: "_"
+enable_https: true
+canonical_host: lamsabarber.com
+server_name: "lamsabarber.com www.lamsabarber.com"
 trimtime_dir: /opt/trimtime
 trimtime_env_file: /etc/trimtime/app.env

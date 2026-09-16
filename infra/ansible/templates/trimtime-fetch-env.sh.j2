@@ -28,6 +28,7 @@ get_param() {
   echo "ADMIN_PHONE=$(get_param admin_phone)"
   echo "ADMIN_PASSWORD=$(get_param admin_password)"
   echo "PGSSLROOTCERT=/etc/ssl/certs/rds-eu-central-1-bundle.pem"
+  echo "COOKIE_SECURE=true"
 } > "$TMP"
 
 install -m 0600 -o root -g root "$TMP" "$DEST"

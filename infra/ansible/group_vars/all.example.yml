@@ -4,3 +4,5 @@
 # ecr_repository_url: "<terraform output ecr_repository_url>"
 # trimtime_sha: "<40-char git SHA whose CI run was green>"
 # aws_region: eu-central-1
+# canonical_host: lamsabarber.com
+# enable_https: true

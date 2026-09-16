@@ -32,11 +32,15 @@ export function createSessionToken() {
   return randomBytes(32).toString("hex");
 }
 
+function cookieSecure() {
+  return process.env.COOKIE_SECURE === "true";
+}
+
 function cookieOptions(): CookieOptions {
   return {
     httpOnly: true,
     sameSite: "lax",
-    secure: false,
+    secure: cookieSecure(),
     path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000,
   };
@@ -59,7 +63,7 @@ export async function destroySession(token: string | undefined, res: Response) {
     await pool.query("DELETE FROM sessions WHERE token_hash = $1", [hashToken(token)]);
   }
 
-  res.clearCookie(SESSION_COOKIE, { path: "/", httpOnly: true, sameSite: "lax", secure: false });
+  res.clearCookie(SESSION_COOKIE, { path: "/", httpOnly: true, sameSite: "lax", secure: cookieSecure() });
 }
 
 export async function findUserBySessionToken(token: string): Promise<PublicUser | null> {

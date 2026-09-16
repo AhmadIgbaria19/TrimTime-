@@ -25,6 +25,7 @@
           - gnupg
           - nginx
           - python3
+          - python3-certbot-nginx
           - unzip
         state: present
 
@@ -94,11 +95,24 @@
         dest: "{{ rds_ca_dest }}"
         mode: "0644"
 
+    - name: ACME webroot
+      ansible.builtin.file:
+        path: /var/www/html
+        state: directory
+        mode: "0755"
+
+    - name: Check Let's Encrypt certificate
+      ansible.builtin.stat:
+        path: "/etc/letsencrypt/live/{{ canonical_host }}/fullchain.pem"
+      register: trimtime_le_cert
+
     - name: Install Nginx site
       ansible.builtin.template:
         src: nginx-trimtime.conf.j2
         dest: /etc/nginx/sites-available/trimtime
         mode: "0644"
+      vars:
+        https_ready: "{{ enable_https | bool and trimtime_le_cert.stat.exists }}"
       notify: Reload nginx
 
     - name: Enable Nginx site
@@ -113,6 +127,37 @@
         path: /etc/nginx/sites-enabled/default
         state: absent
       notify: Reload nginx
+
+    - name: Flush Nginx before certificate request
+      ansible.builtin.meta: flush_handlers
+      when: enable_https | bool and not trimtime_le_cert.stat.exists
+
+    - name: Request Let's Encrypt certificate
+      ansible.builtin.command: >
+        certbot certonly --webroot -w /var/www/html
+        -d {{ canonical_host }} -d www.{{ canonical_host }}
+        --non-interactive --agree-tos --register-unsafely-without-email
+        --keep-until-expiring
+      args:
+        creates: "/etc/letsencrypt/live/{{ canonical_host }}/fullchain.pem"
+      when: enable_https | bool
+
+    - name: Install TLS Nginx site
+      ansible.builtin.template:
+        src: nginx-trimtime.conf.j2
+        dest: /etc/nginx/sites-available/trimtime
+        mode: "0644"
+      vars:
+        https_ready: true
+      notify: Reload nginx
+      when: enable_https | bool
+
+    - name: Enable certbot renewal timer
+      ansible.builtin.systemd:
+        name: certbot.timer
+        enabled: true
+        state: started
+      when: enable_https | bool
 
     - name: Install Compose file
       ansible.builtin.template:
