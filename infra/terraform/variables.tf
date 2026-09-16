@@ -107,6 +107,18 @@ variable "github_repository" {
   default     = "AhmadIgbaria19/TrimTime-"
 }
 
+variable "github_owner_id" {
+  type        = string
+  description = "Numeric GitHub owner id used in the immutable OIDC sub claim (repos created after 2026-07-15)."
+  default     = "130318238"
+}
+
+variable "github_repo_id" {
+  type        = string
+  description = "Numeric GitHub repository id used in the immutable OIDC sub claim."
+  default     = "1362823837"
+}
+
 variable "github_environment" {
   type        = string
   description = "GitHub Environment name used by the deploy job (required reviewer)."

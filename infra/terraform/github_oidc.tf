@@ -1,9 +1,8 @@
 # GitHub Actions OIDC (Phase 8). No access keys in the repo.
-# Trust is limited to this repository on main and the production Environment.
+# Repos created after 2026-07-15 emit an immutable sub:
+#   repo:<owner>@<owner_id>/<repo>@<repo_id>:ref:refs/heads/<branch>
 
 data "aws_iam_policy_document" "github_actions_assume" {
-  # AWS requires token.actions.githubusercontent.com:sub (or job_workflow_ref)
-  # and rejects a wildcard that is not repo-scoped. Match this repository only.
   statement {
     sid     = "GitHubOidc"
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -19,7 +18,7 @@ data "aws_iam_policy_document" "github_actions_assume" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:*"]
+      values   = ["${local.github_oidc_sub_prefix}:*"]
     }
   }
 }
@@ -38,6 +37,13 @@ resource "aws_iam_openid_connect_provider" "github" {
 
 locals {
   github_oidc_provider_arn = var.github_oidc_provider_arn != "" ? var.github_oidc_provider_arn : aws_iam_openid_connect_provider.github[0].arn
+  github_oidc_sub_prefix = format(
+    "repo:%s@%s/%s@%s",
+    split("/", var.github_repository)[0],
+    var.github_owner_id,
+    split("/", var.github_repository)[1],
+    var.github_repo_id,
+  )
 }
 
 resource "aws_iam_role" "github_actions" {
