@@ -1,15 +1,17 @@
 import { initialsFor } from "../api/catalog";
+import { useLocale } from "../context/LocaleContext";
 import { useSalon } from "../context/SalonContext";
 
 export function Barbers() {
   const { catalog } = useSalon();
+  const { t } = useLocale();
   const barbers = catalog?.barbers ?? [];
 
   return (
     <section className="section section-muted" id="barbers">
       <div className="section-heading">
-        <p className="eyebrow">The chair</p>
-        <h2>Barbers who own their hour.</h2>
+        <p className="eyebrow">{t("barbers.eyebrow")}</p>
+        <h2>{t("barbers.title")}</h2>
       </div>
 
       <ul className="barber-grid">

@@ -1,7 +1,6 @@
+import { useLocale } from "../context/LocaleContext";
+
 export function DemoBanner() {
-  return (
-    <p className="demo-banner">
-      Demo salon — bookings are not real, and no payment is collected.
-    </p>
-  );
+  const { t } = useLocale();
+  return <p className="demo-banner">{t("demoBanner")}</p>;
 }

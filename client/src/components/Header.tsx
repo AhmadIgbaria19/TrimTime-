@@ -1,21 +1,24 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { LanguageSwitch } from "./LanguageSwitch";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import { useSalon } from "../context/SalonContext";
-
-const links = [
-  { to: "/#services", label: "Services" },
-  { to: "/#barbers", label: "Barbers" },
-  { to: "/#hours", label: "Hours" },
-];
 
 export function Header() {
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
   const { catalog } = useSalon();
+  const { t } = useLocale();
   const navigate = useNavigate();
   const salonName = catalog?.salon.name ?? "Salon";
   const isAdmin = user?.role === "admin";
+
+  const links = [
+    { to: "/#services", label: t("nav.services") },
+    { to: "/#barbers", label: t("nav.barbers") },
+    { to: "/#hours", label: t("nav.hours") },
+  ];
 
   function close() {
     setOpen(false);
@@ -34,7 +37,7 @@ export function Header() {
           {salonName}
         </Link>
 
-        <nav className={open ? "nav nav-open" : "nav"} aria-label="Primary">
+        <nav className={open ? "nav nav-open" : "nav"} aria-label={t("nav.primary")}>
           {isAdmin
             ? null
             : links.map((link) => (
@@ -45,57 +48,60 @@ export function Header() {
           {isAdmin ? (
             <>
               <NavLink to="/admin" end onClick={close}>
-                Dashboard
+                {t("nav.dashboard")}
               </NavLink>
               <NavLink to="/admin/bookings" onClick={close}>
-                Manage Bookings
+                {t("nav.manageBookings")}
               </NavLink>
               <NavLink to="/admin/settings" onClick={close}>
-                Settings
+                {t("nav.settings")}
               </NavLink>
               <span className="nav-user">{user.name}</span>
               <button className="text-btn" type="button" onClick={onLogout}>
-                Log out
+                {t("nav.logOut")}
               </button>
             </>
           ) : user ? (
             <>
               <NavLink to="/bookings" onClick={close}>
-                My Bookings
+                {t("nav.myBookings")}
               </NavLink>
               <span className="nav-user">{user.name}</span>
               <button className="text-btn" type="button" onClick={onLogout}>
-                Log out
+                {t("nav.logOut")}
               </button>
               <Link className="btn btn-gold nav-book" to="/book" onClick={close}>
-                Book an Appointment
+                {t("nav.book")}
               </Link>
             </>
           ) : (
             <>
               <NavLink to="/login" onClick={close}>
-                Sign in
+                {t("nav.signIn")}
               </NavLink>
               <NavLink to="/register" onClick={close}>
-                Create account
+                {t("nav.createAccount")}
               </NavLink>
               <Link className="btn btn-gold nav-book" to="/book" onClick={close}>
-                Book an Appointment
+                {t("nav.book")}
               </Link>
             </>
           )}
         </nav>
 
-        <button
-          className="menu-toggle"
-          type="button"
-          aria-expanded={open}
-          aria-label={open ? "Close menu" : "Open menu"}
-          onClick={() => setOpen((value) => !value)}
-        >
-          <span />
-          <span />
-        </button>
+        <div className="header-tools">
+          <LanguageSwitch />
+          <button
+            className="menu-toggle"
+            type="button"
+            aria-expanded={open}
+            aria-label={open ? t("nav.closeMenu") : t("nav.openMenu")}
+            onClick={() => setOpen((value) => !value)}
+          >
+            <span />
+            <span />
+          </button>
+        </div>
       </div>
     </header>
   );

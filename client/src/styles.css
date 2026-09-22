@@ -101,6 +101,76 @@ button {
   min-height: var(--header);
 }
 
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.lang-switch {
+  display: flex;
+  gap: 0.12rem;
+  padding: 0.14rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(22, 20, 18, 0.7);
+}
+
+.lang-btn {
+  padding: 0.32rem 0.58rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.lang-btn.is-active {
+  color: var(--ink);
+  background: var(--gold);
+}
+
+html[lang="ar"] body {
+  font-family: "IBM Plex Sans Arabic", Outfit, system-ui, sans-serif;
+}
+
+html[lang="he"] body {
+  font-family: Assistant, Outfit, system-ui, sans-serif;
+}
+
+html[lang="ar"] h1,
+html[lang="ar"] h2,
+html[lang="ar"] h3,
+html[lang="ar"] .wordmark,
+html[lang="he"] h1,
+html[lang="he"] h2,
+html[lang="he"] h3,
+html[lang="he"] .wordmark {
+  font-family: inherit;
+}
+
+html[dir="rtl"] h1 {
+  line-height: 1.05;
+}
+
+html[dir="rtl"] .lang-btn {
+  letter-spacing: 0;
+}
+
+html[dir="rtl"] .btn,
+html[dir="rtl"] .eyebrow,
+html[dir="rtl"] .demo-banner,
+html[dir="rtl"] .tab,
+html[dir="rtl"] .desk-tab,
+html[dir="rtl"] .desk-add-btn {
+  text-transform: none;
+  letter-spacing: 0.03em;
+}
+
 .wordmark {
   font-size: 1.7rem;
   letter-spacing: 0.16em;
@@ -111,6 +181,7 @@ button {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  flex: 1;
   justify-content: flex-end;
   gap: 1.6rem;
   font-size: 0.92rem;
@@ -250,12 +321,12 @@ h1 em {
 }
 
 .hero-stats li {
-  padding-right: 1rem;
-  border-right: 1px solid var(--line);
+  padding-inline-end: 1rem;
+  border-inline-end: 1px solid var(--line);
 }
 
 .hero-stats li:last-child {
-  border-right: none;
+  border-inline-end: none;
 }
 
 .hero-stats strong {
@@ -290,15 +361,15 @@ h1 em {
 
 .hero-frame::before {
   top: 0.35rem;
-  left: 0.35rem;
-  border-right: none;
+  inset-inline-start: 0.35rem;
+  border-inline-end: none;
   border-bottom: none;
 }
 
 .hero-frame::after {
-  right: 0.35rem;
+  inset-inline-end: 0.35rem;
   bottom: 0.35rem;
-  border-left: none;
+  border-inline-start: none;
   border-top: none;
 }
 
@@ -1019,7 +1090,7 @@ button.btn {
 .schedule-table th,
 .schedule-table td {
   padding: 0.85rem 0.7rem;
-  text-align: left;
+  text-align: start;
   vertical-align: top;
   border-bottom: 1px solid var(--line);
 }
@@ -1230,8 +1301,7 @@ button.btn {
     display: none;
     position: absolute;
     top: 100%;
-    right: 0;
-    left: 0;
+    inset-inline: 0;
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
@@ -1257,7 +1327,7 @@ button.btn {
 
   .hero-stats li {
     padding: 0.4rem 0;
-    border-right: none;
+    border-inline-end: none;
     border-bottom: 1px solid var(--line);
   }
 
@@ -1626,7 +1696,7 @@ button.btn {
   height: 100%;
   overflow: auto;
   padding: 1.4rem 1.35rem 2rem;
-  border-left: 1px solid var(--line);
+  border-inline-start: 1px solid var(--line);
   background: var(--ink-soft);
 }
 
@@ -1672,7 +1742,7 @@ button.btn {
   .desk-drawer {
     width: 100%;
     height: min(92vh, 100%);
-    border-left: none;
+    border-inline-start: none;
     border-top: 1px solid var(--line);
     border-radius: 18px 18px 0 0;
   }

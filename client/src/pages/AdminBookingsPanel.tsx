@@ -8,24 +8,10 @@ import {
 } from "../api/auth";
 import { formatPrice, type Catalog } from "../api/catalog";
 import { DeskCalendar } from "../components/DeskCalendar";
+import { useLocale } from "../context/LocaleContext";
+import { actionKey, confirmKey, statusKey } from "../i18n/messages";
 import { addIsoDays, formatIsoDateLong, formatZonedClock, zonedToday } from "../lib/dates";
 import { AdminManualBooking } from "./AdminManualBooking";
-
-const ACTION_LABELS: Record<AdminBookingAction, string> = {
-  confirm: "Confirm",
-  reject: "Reject",
-  complete: "Complete",
-  "no-show": "No-show",
-  cancel: "Cancel",
-};
-
-const CONFIRM_COPY: Record<AdminBookingAction, string> = {
-  confirm: "Confirm this request and hold the time?",
-  reject: "Reject this request and free the time?",
-  complete: "Mark this visit as completed?",
-  "no-show": "Mark this customer as a no-show?",
-  cancel: "Cancel this confirmed visit? The customer will see your reason. There is no customer notice window.",
-};
 
 const SCHEDULE_STATUSES = ["Confirmed", "Completed", "Cancelled", "Rejected", "NoShow", "Expired"] as const;
 const REFRESH_MS = 30000;
@@ -85,6 +71,7 @@ function ActionButtons({
   workingId: number | null;
   onAction: (id: number, action: AdminBookingAction) => void;
 }) {
+  const { t, tApi } = useLocale();
   if (!booking.actions.length) {
     return <span className="muted-dash">—</span>;
   }
@@ -98,10 +85,10 @@ function ActionButtons({
             className={`desk-action ${danger ? "is-danger" : "is-primary"}`}
             type="button"
             disabled={workingId !== null || !item.enabled}
-            title={item.reason}
+            title={item.reason ? tApi(item.reason) : undefined}
             onClick={() => onAction(booking.id, item.action)}
           >
-            {ACTION_LABELS[item.action]}
+            {t(actionKey(item.action))}
           </button>
         );
       })}
@@ -110,12 +97,13 @@ function ActionButtons({
 }
 
 function BookingNote({ note }: { note: string }) {
+  const { t } = useLocale();
   if (!note) {
     return null;
   }
   return (
     <details className="booking-note">
-      <summary>Note</summary>
+      <summary>{t("note")}</summary>
       <p dir="auto">{note}</p>
     </details>
   );
@@ -130,6 +118,7 @@ function PhoneLink({ phone }: { phone: string }) {
 }
 
 function TimeRange({ booking, showDate }: { booking: AdminBooking; showDate?: boolean }) {
+  const { intl } = useLocale();
   const end = booking.localEndTime;
   return (
     <div className="desk-time">
@@ -137,12 +126,13 @@ function TimeRange({ booking, showDate }: { booking: AdminBooking; showDate?: bo
         {booking.localTime}
         {end ? `–${end}` : ""}
       </strong>
-      {showDate ? <span className="cell-sub">{formatIsoDateLong(booking.localDate)}</span> : null}
+      {showDate ? <span className="cell-sub">{formatIsoDateLong(booking.localDate, intl)}</span> : null}
     </div>
   );
 }
 
 export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
+  const { t, tApi, intl } = useLocale();
   const timeZone = catalog.salon.timezone || "Asia/Jerusalem";
   const [searchParams] = useSearchParams();
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
@@ -203,7 +193,7 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
       setUpdatedAt(new Date());
       setError("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load bookings.");
+      setError(err instanceof Error ? tApi(err.message) : t("my.loadFail"));
     } finally {
       setLoading(false);
     }
@@ -237,7 +227,7 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
     }
     const { id, action } = pendingAction;
     if (action === "cancel" && (cancelReason.trim().length < 2 || cancelReason.trim().length > 280)) {
-      setError("Enter a cancellation reason (2–280 characters) for the customer.");
+      setError(t("desk.cancelReasonError"));
       return;
     }
     setPendingAction(null);
@@ -249,7 +239,7 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
       setBookings((current) => current.map((booking) => (booking.id === id ? updated : booking)));
       setSuccess(`${updated.customerName} is now ${updated.status}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update the booking.");
+      setError(err instanceof Error ? tApi(err.message) : t("desk.updateFail"));
     } finally {
       setWorkingId(null);
       setCancelReason("");
@@ -281,30 +271,31 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
   );
 
   const visible = tab === "pending" ? filteredPending : scheduleRows;
-  const dateLabel = date === today ? `Today · ${formatIsoDateLong(date)}` : formatIsoDateLong(date);
+  const dateLabel =
+    date === today ? `${t("today")} · ${formatIsoDateLong(date, intl)}` : formatIsoDateLong(date, intl);
 
   function emptyCopy() {
     if (tab === "pending") {
       return pendingCount
-        ? "No pending requests match these filters. The count above is every waiting request, any day."
-        : "No pending requests right now. This count covers every day, not only the selected date.";
+        ? t("desk.emptyPendingFilter")
+        : t("desk.emptyPending");
     }
     if (status === "Confirmed") {
-      return "No confirmed visits on this day. Use status to see completed or cancelled bookings.";
+      return t("desk.emptyConfirmed");
     }
-    return "No bookings in this view.";
+    return t("desk.emptyView");
   }
 
   return (
     <div className="desk-shell">
       <header className="desk-top">
         <div>
-          <p className="eyebrow">Salon desk</p>
-          <h1>Manage bookings</h1>
+          <p className="eyebrow">{t("dash.eyebrow")}</p>
+          <h1>{t("desk.title")}</h1>
           <p className="desk-date-label">{dateLabel}</p>
         </div>
         <button className="desk-add-btn" type="button" onClick={() => setDrawerOpen(true)}>
-          + Add Booking
+          {t("desk.addBooking")}
         </button>
       </header>
 
@@ -312,22 +303,22 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
         <aside className="desk-side">
           <div className="desk-day-nav">
             <button className="desk-btn desk-btn-solid" type="button" onClick={() => setDate(addIsoDays(date, -1))}>
-              Previous
+              {t("previous")}
             </button>
             <button
               className={date === today ? "desk-btn desk-btn-gold" : "desk-btn desk-btn-solid"}
               type="button"
               onClick={() => setDate(today)}
             >
-              Today
+              {t("today")}
             </button>
             <button className="desk-btn desk-btn-solid" type="button" onClick={() => setDate(addIsoDays(date, 1))}>
-              Next
+              {t("next")}
             </button>
           </div>
           <DeskCalendar value={date} today={today} onChange={setDate} />
           <p className="desk-updated">
-            {updatedAt ? `Updated ${formatZonedClock(timeZone, updatedAt)}` : "Waiting for first load"}
+            {updatedAt ? t("dash.updated", { time: formatZonedClock(timeZone, updatedAt) }) : t("desk.waitingLoad")}
           </p>
         </aside>
 
@@ -338,28 +329,26 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
               type="button"
               onClick={() => setTab("schedule")}
             >
-              Day Schedule
+              {t("desk.daySchedule")}
             </button>
             <button
               className={tab === "pending" ? "desk-tab is-active" : "desk-tab"}
               type="button"
               onClick={() => setTab("pending")}
             >
-              Pending Requests
+              {t("desk.pendingRequests")}
               <span className="count-badge">{pendingCount}</span>
             </button>
           </div>
           <p className="desk-scope">
-            {tab === "pending"
-              ? "Pending count is every waiting request, any day — not only the selected date."
-              : "Day schedule shows the selected date. Confirmed visits are the default working list."}
+            {tab === "pending" ? t("desk.pendingScope") : t("desk.scheduleScope")}
           </p>
 
           <div className="desk-filters">
             <label>
-              Barber
+              {t("barber")}
               <select value={barberId} onChange={(event) => setBarberId(event.target.value)}>
-                <option value="">All barbers</option>
+                <option value="">{t("desk.allBarbers")}</option>
                 {catalog.barbers.map((barber) => (
                   <option key={barber.id} value={barber.id}>
                     {barber.name}
@@ -369,24 +358,24 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
             </label>
             {tab === "schedule" ? (
               <label>
-                Status
+                {t("status")}
                 <select value={status} onChange={(event) => setStatus(event.target.value)}>
-                  <option value="Confirmed">Confirmed</option>
-                  <option value="all">All except pending</option>
+                  <option value="Confirmed">{t("status.Confirmed")}</option>
+                  <option value="all">{t("desk.allExceptPending")}</option>
                   {SCHEDULE_STATUSES.filter((value) => value !== "Confirmed").map((value) => (
                     <option key={value} value={value}>
-                      {value}
+                      {t(statusKey(value))}
                     </option>
                   ))}
                 </select>
               </label>
             ) : null}
             <label className="desk-search">
-              Search
+              {t("search")}
               <input
                 type="search"
                 value={query}
-                placeholder="Name or phone"
+                placeholder={t("desk.searchPlaceholder")}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
@@ -395,7 +384,11 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
           {success ? <p className="desk-success">{success}</p> : null}
           {jumpTo ? (
             <p className="desk-success">
-              Added {jumpTo.customerName} on {formatIsoDateLong(jumpTo.localDate)} at {jumpTo.localTime}.{" "}
+              {t("desk.addedOn", {
+                name: jumpTo.customerName,
+                date: formatIsoDateLong(jumpTo.localDate, intl),
+                time: jumpTo.localTime,
+              })}{" "}
               <button
                 className="text-btn"
                 type="button"
@@ -406,13 +399,13 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
                   setJumpTo(null);
                 }}
               >
-                View booking
+                {t("desk.viewBooking")}
               </button>
             </p>
           ) : null}
           {error ? <p className="form-error">{error}</p> : null}
 
-          {loading ? <p className="lede">Loading the day’s board…</p> : null}
+          {loading ? <p className="lede">{t("desk.loadingBoard")}</p> : null}
           {!loading && !visible.length ? <p className="lede">{emptyCopy()}</p> : null}
 
           {!loading && visible.length ? (
@@ -421,13 +414,13 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
                 <table className="schedule-table desk-table">
                   <thead>
                     <tr>
-                      <th>Time</th>
-                      <th>Customer</th>
-                      <th>Phone</th>
-                      <th>Service</th>
-                      <th>Barber</th>
-                      <th>Status</th>
-                      <th>Actions</th>
+                      <th>{t("time")}</th>
+                      <th>{t("customer")}</th>
+                      <th>{t("phone")}</th>
+                      <th>{t("service")}</th>
+                      <th>{t("barber")}</th>
+                      <th>{t("status")}</th>
+                      <th>{t("actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -443,15 +436,15 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
                         >
                           <td>
                             <TimeRange booking={booking} showDate={tab === "pending"} />
-                            {isNext ? <span className="next-flag">Next appointment</span> : null}
+                            {isNext ? <span className="next-flag">{t("desk.nextAppt")}</span> : null}
                           </td>
                           <td>
                             <strong className="desk-customer" dir="auto">
                               {booking.customerName}
                             </strong>
-                            {booking.isGuest ? <span className="visitor-tag">Visitor · no account</span> : null}
+                            {booking.isGuest ? <span className="visitor-tag">{t("desk.visitor")}</span> : null}
                             {booking.status === "Cancelled" && booking.cancelledBy === "admin" && booking.cancelledReason ? (
-                              <span className="visitor-tag">Salon cancel: {booking.cancelledReason}</span>
+                              <span className="visitor-tag">{t("desk.salonCancel", { reason: booking.cancelledReason })}</span>
                             ) : null}
                             <BookingNote note={booking.note} />
                           </td>
@@ -465,7 +458,7 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
                           <td>{booking.barberName}</td>
                           <td>
                             <span className={`status-pill status-${booking.status.toLowerCase()}`}>
-                              {booking.status}
+                              {t(statusKey(booking.status))}
                             </span>
                           </td>
                           <td>
@@ -488,13 +481,13 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
                     >
                       <div>
                         <TimeRange booking={booking} showDate={tab === "pending"} />
-                        {isNext ? <p className="next-flag">Next appointment</p> : null}
+                        {isNext ? <p className="next-flag">{t("desk.nextAppt")}</p> : null}
                         <p className="desk-customer" dir="auto">
                           {booking.customerName}
                         </p>
-                        {booking.isGuest ? <p className="visitor-tag">Visitor · no account</p> : null}
+                        {booking.isGuest ? <p className="visitor-tag">{t("desk.visitor")}</p> : null}
                         {booking.status === "Cancelled" && booking.cancelledBy === "admin" && booking.cancelledReason ? (
-                          <p className="visitor-tag">Salon cancel: {booking.cancelledReason}</p>
+                          <p className="visitor-tag">{t("desk.salonCancel", { reason: booking.cancelledReason })}</p>
                         ) : null}
                         <p className="booking-meta">
                           <PhoneLink phone={booking.customerPhone} />
@@ -505,7 +498,7 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
                         <BookingNote note={booking.note} />
                       </div>
                       <div className="booking-side">
-                        <span className={`status-pill status-${booking.status.toLowerCase()}`}>{booking.status}</span>
+                        <span className={`status-pill status-${booking.status.toLowerCase()}`}>{t(statusKey(booking.status))}</span>
                         <ActionButtons booking={booking} workingId={workingId} onAction={requestAction} />
                       </div>
                     </li>
@@ -532,7 +525,7 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
             setJumpTo(null);
             setTab("schedule");
             setStatus("Confirmed");
-            setSuccess(`Added ${booking.customerName} at ${booking.localTime}.`);
+            setSuccess(t("desk.addedAt", { name: booking.customerName, time: booking.localTime }));
           }
         }}
       />
@@ -546,24 +539,24 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
             aria-labelledby="confirm-action-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="confirm-action-title">Please confirm</h2>
-            <p className="lede">{CONFIRM_COPY[pendingAction.action]}</p>
+            <h2 id="confirm-action-title">{t("desk.pleaseConfirm")}</h2>
+            <p className="lede">{t(confirmKey(pendingAction.action))}</p>
             {pendingAction.action === "cancel" ? (
               <label>
-                Reason for the customer
+                {t("desk.cancelReason")}
                 <textarea
                   value={cancelReason}
                   maxLength={280}
                   rows={3}
                   dir="auto"
-                  placeholder="Why the salon is cancelling this visit"
+                  placeholder={t("desk.cancelPlaceholder")}
                   onChange={(event) => setCancelReason(event.target.value)}
                 />
               </label>
             ) : null}
             <div className="desk-day-nav">
               <button className="desk-btn desk-btn-solid" type="button" onClick={() => setPendingAction(null)}>
-                Back
+                {t("back")}
               </button>
               <button
                 className="desk-btn desk-btn-gold"
@@ -571,7 +564,7 @@ export function AdminBookingsPanel({ catalog }: { catalog: Catalog }) {
                 disabled={pendingAction.action === "cancel" && cancelReason.trim().length < 2}
                 onClick={confirmAction}
               >
-                {ACTION_LABELS[pendingAction.action]}
+                {t(actionKey(pendingAction.action))}
               </button>
             </div>
           </div>

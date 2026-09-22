@@ -1,6 +1,6 @@
 # Next AWS work
 
-Local Docker Compose continues to use Postgres without TLS unless `PGSSLROOTCERT` is set. Phase 8 jobs are in `ci.yml`; the OIDC role is not applied yet.
+Local Docker Compose continues to use Postgres without TLS unless `PGSSLROOTCERT` is set. Phase 8 jobs are in `cicd.yml`; the OIDC role is not applied yet.
 
 ## 1. PostgreSQL TLS (`verify-full`)
 
@@ -19,7 +19,7 @@ Local Compose and GitHub `test:live` can keep connecting without TLS until that 
 
 ## 2. linux/arm64 publish + deploy (Phase 8)
 
-Implemented in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) (same file as `quality` / `live` / `image`).
+Implemented in [`.github/workflows/cicd.yml`](../.github/workflows/cicd.yml) (same file as `quality` / `live` / `image`).
 
 | Job | Trigger | After |
 | --- | --- | --- |

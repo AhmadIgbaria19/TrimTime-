@@ -210,7 +210,7 @@ Last local result (2026-09-09): **20** unit tests passed; **13** isolated live t
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs on pull requests and on pushes to `main`. There is no ESLint yet; “lint/typecheck” is `tsc` on the client. Jobs do not read the local salon `.env`.
+GitHub Actions (`.github/workflows/cicd.yml`) runs on pull requests and on pushes to `main`. There is no ESLint yet; “lint/typecheck” is `tsc` on the client. Jobs do not read the local salon `.env`.
 
 | Job | What it proves |
 | --- | --- |

@@ -4,6 +4,7 @@ import { DemoBanner } from "./components/DemoBanner";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { AuthProvider } from "./context/AuthContext";
+import { LocaleProvider } from "./context/LocaleContext";
 import { SalonProvider } from "./context/SalonContext";
 import { AdminPage } from "./pages/AdminPage";
 import { BookPage } from "./pages/BookPage";
@@ -15,6 +16,7 @@ import { RegisterPage } from "./pages/RegisterPage";
 export default function App() {
   return (
     <BrowserRouter>
+      <LocaleProvider>
       <AuthProvider>
         <SalonProvider>
           <DemoBanner />
@@ -47,6 +49,7 @@ export default function App() {
           <Footer />
         </SalonProvider>
       </AuthProvider>
+      </LocaleProvider>
     </BrowserRouter>
   );
 }

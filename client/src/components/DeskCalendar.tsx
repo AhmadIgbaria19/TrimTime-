@@ -8,8 +8,8 @@ import {
   toIso,
   weekdaySun0,
 } from "../lib/dates";
-
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+import { useLocale } from "../context/LocaleContext";
+import { weekdayKey } from "../i18n/messages";
 
 export function DeskCalendar({
   value,
@@ -20,6 +20,7 @@ export function DeskCalendar({
   today: string;
   onChange: (date: string) => void;
 }) {
+  const { t, intl } = useLocale();
   const selected = parseIsoDate(value || today);
   const [view, setView] = useState({ year: selected.year, month: selected.month });
 
@@ -46,18 +47,18 @@ export function DeskCalendar({
   return (
     <div className="desk-calendar">
       <div className="desk-cal-toolbar">
-        <button className="desk-cal-nav" type="button" aria-label="Previous month" onClick={() => setView(prev)}>
+        <button className="desk-cal-nav" type="button" aria-label={t("cal.prevMonth")} onClick={() => setView(prev)}>
           ‹
         </button>
-        <p className="desk-cal-month">{monthLabel(view.year, view.month)}</p>
-        <button className="desk-cal-nav" type="button" aria-label="Next month" onClick={() => setView(next)}>
+        <p className="desk-cal-month">{monthLabel(view.year, view.month, intl)}</p>
+        <button className="desk-cal-nav" type="button" aria-label={t("cal.nextMonth")} onClick={() => setView(next)}>
           ›
         </button>
       </div>
-      <div className="desk-cal-grid" role="grid" aria-label="Choose a day">
-        {WEEKDAYS.map((day) => (
-          <div key={day} className="desk-cal-weekday">
-            {day}
+      <div className="desk-cal-grid" role="grid" aria-label={t("cal.chooseDay")}>
+        {Array.from({ length: 7 }, (_, index) => (
+          <div key={index} className="desk-cal-weekday">
+            {t(weekdayKey(index, true))}
           </div>
         ))}
         {cells.map((cell, index) =>
@@ -72,7 +73,7 @@ export function DeskCalendar({
                 .filter(Boolean)
                 .join(" ")}
               type="button"
-              aria-label={formatIsoDateLong(cell.iso)}
+              aria-label={formatIsoDateLong(cell.iso, intl)}
               aria-current={cell.today ? "date" : undefined}
               aria-pressed={cell.selected}
               onClick={() => onChange(cell.iso)}

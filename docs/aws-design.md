@@ -1,6 +1,6 @@
 # TrimTime — AWS architecture and cost (Phase 6)
 
-**Status:** architecture **approved for local file prep** (2026-09-10). App stack is live in `eu-central-1`. Phase 8 jobs are in `ci.yml`; OIDC IAM is **not** applied yet. No domain.
+**Status:** architecture **approved for local file prep** (2026-09-10). App stack is live in `eu-central-1`. Phase 8 jobs are in `cicd.yml`; OIDC IAM is **not** applied yet. No domain.
 
 **Verification date:** 2026-09-10 (pricing re-checked 2026-09-10).
 
@@ -14,7 +14,7 @@ Ahmd approved Frankfurt, `t4g.small`, RDS Single-AZ in a two-AZ private DB subne
 | Image | Multi-stage `Dockerfile` (`node:22-alpine`). Compose runs `trimtime-app` + Postgres 16. |
 | Database client today | `server/src/db/pool.ts` — `pg.Pool` with host/user/password **and no TLS options**. |
 | Migrations today | `server/src/index.ts` runs `migrate()` on every process start. SQL files are apply-once (`schema_migrations`). There are **no down migrations**. |
-| CI | `.github/workflows/ci.yml`: typecheck + `npm test` + client build; isolated `test:live`; `docker build` with **no `--platform`** (GitHub `ubuntu-latest` → **linux/amd64**). No registry push. |
+| CI | `.github/workflows/cicd.yml`: typecheck + `npm test` + client build; isolated `test:live`; `docker build` with **no `--platform`** (GitHub `ubuntu-latest` → **linux/amd64**). No registry push. |
 | GitHub | Public repo [AhmadIgbaria19/TrimTime-](https://github.com/AhmadIgbaria19/TrimTime-). |
 | CI on GitHub | PR [#3](https://github.com/AhmadIgbaria19/TrimTime-/pull/3) (`ci-fail-demo`): `2d762fa` **failed**; `f85c5a8` **succeeded** ([run 34489569300](https://github.com/AhmadIgbaria19/TrimTime-/actions/runs/34489569300)). PR **#3 is still open**. PR #2 was merged to `main`. |
 | AWS account | Suspended (outstanding balance). **No keys in this phase. Do not create resources.** |
@@ -111,7 +111,7 @@ RDS encryption at rest: AWS-managed key (no extra customer-managed KMS key in v1
 | **Nginx** | TLS to browsers, proxy to `127.0.0.1:3001`. | Database TLS (that is the Node `pg` client). |
 | **HTTPS / Certbot** | Let's Encrypt for the future hostname. | DNS registration (**after** approval). ACM is unnecessary without an ALB. |
 
-**CI vs CD (Phase 8, in repo 2026-09-17):** stay in **one** file [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). Keep jobs `quality`, `live`, and `image`. **Pull requests:** those three only. **`push` to `main`:** after all three succeed, `publish` (`linux/arm64` → ECR, tag = full git SHA) then `deploy` (same SHA on EC2). Production `deploy` waits for **manual approval** (GitHub Environment `production` required reviewer). GitHub → AWS via **OIDC**. CD must deploy that arm64 SHA — not the amd64 CI smoke image and not “whatever is on the laptop.” Local `npm test` is not a deploy signal. **OIDC IAM still needs a separate `terraform apply`.**
+**CI vs CD (Phase 8, in repo 2026-09-17):** stay in **one** file [`.github/workflows/cicd.yml`](../.github/workflows/cicd.yml). Keep jobs `quality`, `live`, and `image`. **Pull requests:** those three only. **`push` to `main`:** after all three succeed, `publish` (`linux/arm64` → ECR, tag = full git SHA) then `deploy` (same SHA on EC2). Production `deploy` waits for **manual approval** (GitHub Environment `production` required reviewer). GitHub → AWS via **OIDC**. CD must deploy that arm64 SHA — not the amd64 CI smoke image and not “whatever is on the laptop.” Local `npm test` is not a deploy signal. **OIDC IAM still needs a separate `terraform apply`.**
 
 ---
 
@@ -216,7 +216,7 @@ v1 uses the public-endpoint path (public subnet + IGW + TCP 443 egress). No NAT,
 
 ## 7. ARM64 image, tags, deploy, rollback
 
-GitHub Actions `ubuntu-latest` builds **linux/amd64** in job `image`. `t4g.small` runs **linux/arm64**. The amd64 smoke build **must not** be deployed to `t4g`. Job `publish` in the **same** `ci.yml` builds `linux/arm64` from the green SHA and pushes to ECR; `deploy` runs that SHA on EC2 after Environment `production` approval.
+GitHub Actions `ubuntu-latest` builds **linux/amd64** in job `image`. `t4g.small` runs **linux/arm64**. The amd64 smoke build **must not** be deployed to `t4g`. Job `publish` in the **same** `cicd.yml` builds `linux/arm64` from the green SHA and pushes to ECR; `deploy` runs that SHA on EC2 after Environment `production` approval.
 
 ### Build and prove the image
 
@@ -473,7 +473,7 @@ Needs a working AWS account **and** Ahmd’s approval to execute:
 4. `terraform apply` (VPC/EC2/RDS/ECR/IAM).
 5. Ansible: Docker, Nginx, SSM Agent, CA bundle, deploy scripts.
 6. Put app secrets in SSM; bootstrap the DB app role using the master secret; first **arm64** image from a **green CI SHA**; health; phone test.
-7. **Phase 8 CD:** same `.github/workflows/ci.yml`. OIDC role in `infra/terraform/github_oidc.tf`; `publish` arm64 from green SHA → ECR SHA tag; `deploy` via Run Command after **manual Environment approval**. PRs stay checks-only. Apply the OIDC role and set GitHub variables before the first pipeline deploy.
+7. **Phase 8 CD:** same `.github/workflows/cicd.yml`. OIDC role in `infra/terraform/github_oidc.tf`; `publish` arm64 from green SHA → ECR SHA tag; `deploy` via Run Command after **manual Environment approval**. PRs stay checks-only. Apply the OIDC role and set GitHub variables before the first pipeline deploy.
 
 ---
 
@@ -506,6 +506,6 @@ Needs a working AWS account **and** Ahmd’s approval to execute:
 | D9 | No domain / Route 53 yet | **Accepted** |
 | D10 | Cost ~$42/mo still **estimated**; Budget $50 = alert only | **Noted** — not a quote; confirm in-account before apply. |
 | D11 | After reopen: audit, then a **separate** go-ahead to apply | **Accepted** |
-| D12 | CI and CD in **one** `.github/workflows/ci.yml`; keep `quality`/`live`/`image`; `publish` (arm64→ECR) then `deploy` (same SHA→EC2); PRs = checks only; `push` to `main` = publish+deploy; **manual approval** before production deploy; OIDC | **Accepted 2026-09-16. Jobs written 2026-09-17.** OIDC Terraform **not applied**. GitHub Environment and variables not set. **Not** an apply go-ahead. |
+| D12 | CI and CD in **one** `.github/workflows/cicd.yml`; keep `quality`/`live`/`image`; `publish` (arm64→ECR) then `deploy` (same SHA→EC2); PRs = checks only; `push` to `main` = publish+deploy; **manual approval** before production deploy; OIDC | **Accepted 2026-09-16. Jobs written 2026-09-17.** OIDC Terraform **not applied**. GitHub Environment and variables not set. **Not** an apply go-ahead. |
 
-Phase 6 architecture choices are accepted for **file prep**. Phase **7a** is the Terraform/Ansible tree. Phase **7b** `terraform apply` for the app stack still needs a **separate** go-ahead. Phase **8** jobs are in `ci.yml`; the OIDC role still needs apply.
+Phase 6 architecture choices are accepted for **file prep**. Phase **7a** is the Terraform/Ansible tree. Phase **7b** `terraform apply` for the app stack still needs a **separate** go-ahead. Phase **8** jobs are in `cicd.yml`; the OIDC role still needs apply.

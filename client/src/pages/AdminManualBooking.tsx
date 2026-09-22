@@ -7,6 +7,7 @@ import {
   type AdminCustomer,
 } from "../api/auth";
 import { formatPrice, type Catalog } from "../api/catalog";
+import { useLocale } from "../context/LocaleContext";
 import { zonedToday } from "../lib/dates";
 import { newIdempotencyKey } from "../lib/id";
 
@@ -32,6 +33,7 @@ export function AdminManualBooking({
   onClose: () => void;
   onCreated: (booking: AdminBooking) => void;
 }) {
+  const { t, tApi } = useLocale();
   const [party, setParty] = useState<PartyKind>("guest");
   const [customers, setCustomers] = useState<AdminCustomer[]>([]);
   const [query, setQuery] = useState("");
@@ -104,7 +106,7 @@ export function AdminManualBooking({
     setLoadingCustomers(true);
     fetchAdminCustomers(query)
       .then((data) => setCustomers(data.customers))
-      .catch((err) => setError(err instanceof Error ? err.message : "Could not load customers."))
+      .catch((err) => setError(err instanceof Error ? tApi(err.message) : t("walkin.loadCustomersFail")))
       .finally(() => setLoadingCustomers(false));
   }, [open, party, query]);
 
@@ -134,7 +136,7 @@ export function AdminManualBooking({
         if (err instanceof Error && err.name === "AbortError") {
           return;
         }
-        setError(err instanceof Error ? err.message : "Could not load times.");
+        setError(err instanceof Error ? tApi(err.message) : t("book.loadTimesFail"));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -153,8 +155,8 @@ export function AdminManualBooking({
     if (!partyReady || !slot?.start) {
       setError(
         party === "guest"
-          ? "Enter the visitor’s name and phone, then choose an available time."
-          : "Choose a customer and an available time.",
+          ? t("walkin.needGuest")
+          : t("walkin.needCustomer"),
       );
       return;
     }
@@ -173,7 +175,7 @@ export function AdminManualBooking({
       });
       onCreated(booking);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add the booking.");
+      setError(err instanceof Error ? tApi(err.message) : t("walkin.addFail"));
       setSubmitting(false);
       idempotencyKey.current = newIdempotencyKey();
     }
@@ -202,41 +204,38 @@ export function AdminManualBooking({
       >
         <div className="desk-drawer-head">
           <div>
-            <p className="eyebrow">Salon desk</p>
-            <h2 id="add-booking-title">Add booking</h2>
+            <p className="eyebrow">{t("dash.eyebrow")}</p>
+            <h2 id="add-booking-title">{t("walkin.title")}</h2>
           </div>
           <button className="desk-btn desk-btn-solid" type="button" onClick={onClose} disabled={submitting}>
-            Close
+            {t("close")}
           </button>
         </div>
-        <p className="form-hint">
-          A visitor booking is stored on the appointment only. It does not create a login, and the phone
-          number is not linked to an existing account.
-        </p>
+        <p className="form-hint">{t("walkin.hint")}</p>
         <form className="walk-in-form" onSubmit={onSubmit}>
           <div>
-            <p className="form-hint">Who is this visit for?</p>
-            <div className="party-toggle" role="group" aria-label="Booking party">
+            <p className="form-hint">{t("walkin.who")}</p>
+            <div className="party-toggle" role="group" aria-label={t("walkin.party")}>
               <button
                 className={party === "guest" ? "is-active" : ""}
                 type="button"
                 onClick={() => setParty("guest")}
               >
-                Visitor · no account
+                {t("walkin.visitor")}
               </button>
               <button
                 className={party === "account" ? "is-active" : ""}
                 type="button"
                 onClick={() => setParty("account")}
               >
-                Existing customer
+                {t("walkin.existing")}
               </button>
             </div>
           </div>
           {party === "guest" ? (
             <>
               <label>
-                Visitor name
+                {t("walkin.visitorName")}
                 <input
                   value={guestName}
                   minLength={2}
@@ -247,13 +246,13 @@ export function AdminManualBooking({
                 />
               </label>
               <label>
-                Phone
+                {t("phone")}
                 <input
                   value={guestPhone}
                   required
                   inputMode="tel"
                   autoComplete="tel"
-                  placeholder="05… or +972"
+                  placeholder={t("walkin.phonePlaceholder")}
                   onChange={(event) => setGuestPhone(event.target.value)}
                 />
               </label>
@@ -261,18 +260,18 @@ export function AdminManualBooking({
           ) : (
             <>
               <label>
-                Find customer
+                {t("walkin.findCustomer")}
                 <input
                   type="search"
                   value={query}
-                  placeholder="Name or phone"
+                  placeholder={t("desk.searchPlaceholder")}
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </label>
               <label>
-                Customer
+                {t("customer")}
                 <select value={customerId} onChange={(event) => setCustomerId(event.target.value)} required>
-                  <option value="">{loadingCustomers ? "Loading customers…" : "Select a customer"}</option>
+                  <option value="">{loadingCustomers ? t("walkin.loadingCustomers") : t("walkin.selectCustomer")}</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name} · {customer.phone}
@@ -283,20 +282,24 @@ export function AdminManualBooking({
             </>
           )}
           <label>
-            Service
+            {t("service")}
             <select value={serviceId} onChange={(event) => setServiceId(event.target.value)} required>
-              <option value="">Select a service</option>
+              <option value="">{t("book.selectService")}</option>
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
-                  {service.name} · {service.durationMinutes} min · {formatPrice(service.priceIls)}
+                  {t("walkin.serviceOption", {
+                    name: service.name,
+                    n: service.durationMinutes,
+                    price: formatPrice(service.priceIls),
+                  })}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Barber
+            {t("barber")}
             <select value={barberId} onChange={(event) => setBarberId(event.target.value)} required>
-              <option value="">Select a barber</option>
+              <option value="">{t("book.selectBarber")}</option>
               {barbers.map((barber) => (
                 <option key={barber.id} value={barber.id}>
                   {barber.name}
@@ -305,14 +308,14 @@ export function AdminManualBooking({
             </select>
           </label>
           <label>
-            Date
+            {t("date")}
             <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
           </label>
           <fieldset className="walk-in-slots">
-            <legend>Available time</legend>
-            {loadingSlots ? <p className="form-hint">Checking times…</p> : null}
+            <legend>{t("walkin.availableTime")}</legend>
+            {loadingSlots ? <p className="form-hint">{t("book.checkingTimes")}</p> : null}
             {!loadingSlots && serviceId && barberId && date && !slots.length ? (
-              <p className="form-hint">No times on this day.</p>
+              <p className="form-hint">{t("book.noTimes")}</p>
             ) : null}
             {slots.length ? (
               <ul className="slot-grid">
@@ -331,7 +334,7 @@ export function AdminManualBooking({
             ) : null}
           </fieldset>
           <label>
-            Note (optional)
+            {t("book.noteOptional")}
             <textarea
               value={note}
               maxLength={280}
@@ -342,12 +345,14 @@ export function AdminManualBooking({
           </label>
           {error ? <p className="form-error">{error}</p> : null}
           <button className="btn btn-gold" type="submit" disabled={submitting || !selectedTime || !partyReady}>
-            {submitting ? "Adding…" : "Add confirmed visit"}
+            {submitting ? t("walkin.adding") : t("walkin.addConfirmed")}
           </button>
           {selectedService && selectedTime ? (
             <p className="form-hint">
-              {selectedService.name} at {selectedTime} will be Confirmed
-              {party === "guest" ? " for this visitor." : " for the selected customer."}
+              {t(party === "guest" ? "walkin.willConfirmGuest" : "walkin.willConfirmAccount", {
+                service: selectedService.name,
+                time: selectedTime,
+              })}
             </p>
           ) : null}
         </form>

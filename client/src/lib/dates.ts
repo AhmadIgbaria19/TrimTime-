@@ -35,9 +35,9 @@ export function isoWeekdaySun0(iso: string) {
   return weekdaySun0(year, month, day);
 }
 
-export function formatIsoDateLong(iso: string) {
+export function formatIsoDateLong(iso: string, locale = "en-US") {
   const { year, month, day } = parseIsoDate(iso);
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(locale, {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -46,8 +46,8 @@ export function formatIsoDateLong(iso: string) {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-export function monthLabel(year: number, month: number) {
-  return new Intl.DateTimeFormat("en-US", {
+export function monthLabel(year: number, month: number, locale = "en-US") {
+  return new Intl.DateTimeFormat(locale, {
     month: "long",
     year: "numeric",
     timeZone: "UTC",

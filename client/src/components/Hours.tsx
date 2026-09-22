@@ -1,8 +1,11 @@
 import { WEEKDAYS } from "../api/catalog";
+import { useLocale } from "../context/LocaleContext";
 import { useSalon } from "../context/SalonContext";
+import { weekdayKey } from "../i18n/messages";
 
 export function Hours() {
   const { catalog } = useSalon();
+  const { t } = useLocale();
   const salon = catalog?.salon;
   const hours = catalog?.hours ?? [];
   const byDay = new Map(hours.map((hour) => [hour.weekday, hour]));
@@ -10,8 +13,8 @@ export function Hours() {
   return (
     <section className="section hours-section" id="hours">
       <div className="section-heading">
-        <p className="eyebrow">Visit</p>
-        <h2>Hours & atelier.</h2>
+        <p className="eyebrow">{t("hours.eyebrow")}</p>
+        <h2>{t("hours.title")}</h2>
         <p>
           {salon?.address}
           <br />
@@ -23,10 +26,10 @@ export function Hours() {
         <ul className="hours-list">
           {WEEKDAYS.map((day, weekday) => {
             const hour = byDay.get(weekday);
-            const label = hour ? `${hour.startTime} – ${hour.endTime}` : "Closed";
+            const label = hour ? `${hour.startTime} – ${hour.endTime}` : t("closed");
             return (
               <li key={day}>
-                <span>{day}</span>
+                <span>{t(weekdayKey(weekday))}</span>
                 <span className={hour ? undefined : "closed"}>{label}</span>
               </li>
             );

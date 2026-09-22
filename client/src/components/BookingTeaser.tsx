@@ -1,17 +1,19 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 
 export function BookingTeaser() {
   const { user } = useAuth();
+  const { t } = useLocale();
 
   if (user?.role === "admin") {
     return (
       <section className="book-panel" id="book">
-        <p className="eyebrow">Salon desk</p>
-        <h2>Manage bookings</h2>
-        <p>Add visits for customers from the admin desk. Personal booking is not used on this account.</p>
+        <p className="eyebrow">{t("teaserAdmin.eyebrow")}</p>
+        <h2>{t("teaserAdmin.title")}</h2>
+        <p>{t("teaserAdmin.body")}</p>
         <Link className="btn btn-gold" to="/admin/bookings">
-          Manage Bookings
+          {t("teaserAdmin.cta")}
         </Link>
       </section>
     );
@@ -19,14 +21,11 @@ export function BookingTeaser() {
 
   return (
     <section className="book-panel" id="book">
-      <p className="eyebrow">Appointments</p>
-      <h2>Book an Appointment</h2>
-      <p>
-        See live times sized to each service. Sending the booking, with your name and phone from
-        your account, arrives in the next step.
-      </p>
+      <p className="eyebrow">{t("teaser.eyebrow")}</p>
+      <h2>{t("teaser.title")}</h2>
+      <p>{t("teaser.body")}</p>
       <Link className="btn btn-gold" to="/book">
-        {user ? "Check available times" : "See times"}
+        {user ? t("teaser.checkTimes") : t("teaser.seeTimes")}
       </Link>
     </section>
   );

@@ -167,7 +167,7 @@ GitHub Actions: lint/typecheck, tests, app build, Docker image. Tests use an iso
 
 **Done**
 
-- Workflow: `.github/workflows/ci.yml` on pull requests and `main`.
+- Workflow: `.github/workflows/cicd.yml` on pull requests and `main`.
 - Job 1 — typecheck + unit tests + client `vite build` (no ESLint package in this repo).
 - Job 2 — `npm run test:live` on a GitHub-hosted Postgres 16. Env uses CI-only passwords. `prepare-test-db` still refuses unless `PGDATABASE` is not `trimtime_test` at reset time, then the suite switches to `trimtime_test`.
 - Job 3 — `docker build` of the app image, no push to a registry.
@@ -213,9 +213,9 @@ Terraform ≥ 1.11, S3 state + `use_lockfile`. Migrations are forward-only; imag
 
 ## Phase 8 — CD
 
-**Status:** `in_review` (jobs in `ci.yml`; OIDC provider + role **applied** 2026-09-17; GitHub Environment and variables still needed)
+**Status:** `in_review` (jobs in `cicd.yml`; OIDC provider + role **applied** 2026-09-17; GitHub Environment and variables still needed)
 
-Keep **one** workflow file: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). There is **no** second workflow for CD.
+Keep **one** workflow file: [`.github/workflows/cicd.yml`](.github/workflows/cicd.yml). There is **no** second workflow for CD.
 
 **Jobs (order)**
 
@@ -277,8 +277,8 @@ A live walkthrough Ahmd can explain: book a visit, ship a change through the pip
 | 2026-09-10 | Terraform state | **Accepted:** S3 `use_lockfile`, Terraform ≥ 1.11; no DynamoDB lock table. |
 | 2026-09-16 | AWS account | Reactivated. $273 prior invoice under waiver review — do not pay from this project. Apply still needs a separate go-ahead. |
 | 2026-09-16 | Budgets | Propose email alerts at **$5 / $10 / $20 actual** (not a cap). None configured yet. |
-| 2026-09-16 | CI/CD workflow | **Accepted.** One file `.github/workflows/ci.yml`. Keep `quality` / `live` / `image`. Add `publish` (arm64 → ECR) then `deploy` (same SHA → EC2). PRs = checks only. `push` to `main` = publish + deploy. Manual GitHub Environment approval before production deploy. OIDC. **This decision is not terraform apply approval.** |
-| 2026-09-17 | Phase 8 files | **Implemented in repo.** `publish`/`deploy` in `ci.yml`; `github_oidc.tf`; SSM helper `.github/scripts/ssm-deploy.sh`. OIDC role **not applied**. GitHub Environment `production` and Action variables not set yet. |
+| 2026-09-16 | CI/CD workflow | **Accepted.** One file `.github/workflows/cicd.yml`. Keep `quality` / `live` / `image`. Add `publish` (arm64 → ECR) then `deploy` (same SHA → EC2). PRs = checks only. `push` to `main` = publish + deploy. Manual GitHub Environment approval before production deploy. OIDC. **This decision is not terraform apply approval.** |
+| 2026-09-17 | Phase 8 files | **Implemented in repo.** `publish`/`deploy` in `cicd.yml`; `github_oidc.tf`; SSM helper `.github/scripts/ssm-deploy.sh`. OIDC role **not applied**. GitHub Environment `production` and Action variables not set yet. |
 
 ## Session notes
 
@@ -289,4 +289,4 @@ A live walkthrough Ahmd can explain: book a visit, ship a change through the pip
 - 2026-09-10: Phase 6 design in `docs/aws-design.md` (`in_review`). No Terraform apply, no Ansible, no CD, no AWS keys.
 - 2026-09-10: Phase 6 design corrected (RDS two-AZ subnet group, TLS verify-full, S3 native lock, SSM Agent, arm64/rollback, cost sources, phases). Still `in_review`. No apply, no app/CI code changes, no commit.
 - 2026-09-16: Account reactivated. Read-only audit (no delete, no apply). Leftover ECR/S3 from old labs. `terraadmin` in eu-central-1 for TrimTime; CLI default was us-east-1. Phase 7b still waiting for apply approval.
-- 2026-09-17: Phase 8 jobs written in `ci.yml`. Terraform OIDC role ready, not applied. Not an apply go-ahead.
+- 2026-09-17: Phase 8 jobs written in `cicd.yml`. Terraform OIDC role ready, not applied. Not an apply go-ahead.

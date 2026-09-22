@@ -12,9 +12,8 @@ import {
   weekdaySun0,
   zonedToday,
 } from "../lib/dates";
-
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
-const WEEKDAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+import { useLocale } from "../context/LocaleContext";
+import { weekdayKey } from "../i18n/messages";
 
 type MonthCalendarProps = {
   timeZone: string;
@@ -33,6 +32,7 @@ export function MonthCalendar({
   value,
   onChange,
 }: MonthCalendarProps) {
+  const { t, dir, intl } = useLocale();
   const today = zonedToday(timeZone);
   const last = addIsoDays(today, horizonDays);
 
@@ -95,7 +95,7 @@ export function MonthCalendar({
   const next = shiftMonth(view.year, view.month, 1);
   const canPrev = monthOverlapsWindow(prev.year, prev.month, today, last);
   const canNext = monthOverlapsWindow(next.year, next.month, today, last);
-  const label = monthLabel(view.year, view.month);
+  const label = monthLabel(view.year, view.month, intl);
   const tabStop =
     cells.find((cell) => cell?.selected)?.iso ??
     cells.find((cell) => cell && !cell.disabled && cell.today)?.iso ??
@@ -126,8 +126,8 @@ export function MonthCalendar({
 
   function onDayKeyDown(event: KeyboardEvent<HTMLButtonElement>, iso: string) {
     const keys: Record<string, number> = {
-      ArrowLeft: -1,
-      ArrowRight: 1,
+      ArrowLeft: dir === "rtl" ? 1 : -1,
+      ArrowRight: dir === "rtl" ? -1 : 1,
       ArrowUp: -7,
       ArrowDown: 7,
     };
@@ -170,7 +170,7 @@ export function MonthCalendar({
         <button
           className="cal-nav"
           type="button"
-          aria-label="Previous month"
+          aria-label={t("cal.prevMonth")}
           disabled={!canPrev}
           onClick={() => setView(prev)}
         >
@@ -182,7 +182,7 @@ export function MonthCalendar({
         <button
           className="cal-nav"
           type="button"
-          aria-label="Next month"
+          aria-label={t("cal.nextMonth")}
           disabled={!canNext}
           onClick={() => setView(next)}
         >
@@ -191,9 +191,9 @@ export function MonthCalendar({
       </div>
 
       <div role="grid" aria-label={label} className="cal-grid">
-        {WEEKDAYS.map((day, index) => (
-          <div key={day} role="columnheader" className="cal-weekday" aria-label={WEEKDAY_LABELS[index]}>
-            {day}
+        {Array.from({ length: 7 }, (_, index) => (
+          <div key={index} role="columnheader" className="cal-weekday" aria-label={t(weekdayKey(index))}>
+            {t(weekdayKey(index, true))}
           </div>
         ))}
         {cells.map((cell, index) =>
@@ -216,7 +216,7 @@ export function MonthCalendar({
               aria-disabled={cell.disabled}
               aria-selected={cell.selected}
               aria-current={cell.today ? "date" : undefined}
-              aria-label={`${formatIsoDateLong(cell.iso)}${cell.closed ? ", closed" : ""}`}
+              aria-label={`${formatIsoDateLong(cell.iso, intl)}${cell.closed ? t("cal.closedSuffix") : ""}`}
               onClick={() => onChange(cell.iso)}
               onKeyDown={(event) => onDayKeyDown(event, cell.iso)}
             >
@@ -229,7 +229,7 @@ export function MonthCalendar({
       </div>
 
       <p className="cal-selected">
-        {value && isSelectable(value) ? formatIsoDateLong(value) : "Select a day"}
+        {value && isSelectable(value) ? formatIsoDateLong(value, intl) : t("cal.selectDay")}
       </p>
     </div>
   );

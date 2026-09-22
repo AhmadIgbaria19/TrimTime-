@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchAdminBookings, type AdminBooking } from "../api/auth";
 import type { Catalog } from "../api/catalog";
+import { useLocale } from "../context/LocaleContext";
 import { formatIsoDateLong, formatZonedClock, zonedToday } from "../lib/dates";
 
 const REFRESH_MS = 30000;
@@ -11,6 +12,7 @@ function byStart(a: AdminBooking, b: AdminBooking) {
 }
 
 export function AdminDashboard({ catalog }: { catalog: Catalog }) {
+  const { t, tApi, intl } = useLocale();
   const timeZone = catalog.salon.timezone || "Asia/Jerusalem";
   const today = zonedToday(timeZone);
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
@@ -28,7 +30,7 @@ export function AdminDashboard({ catalog }: { catalog: Catalog }) {
       setUpdatedAt(new Date());
       setError("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load the dashboard.");
+      setError(err instanceof Error ? tApi(err.message) : t("dash.loadFail"));
     } finally {
       setLoading(false);
     }
@@ -77,35 +79,35 @@ export function AdminDashboard({ catalog }: { catalog: Catalog }) {
     <div className="desk-shell">
       <header className="desk-top">
         <div>
-          <p className="eyebrow">Salon desk</p>
-          <h1>Dashboard</h1>
-          <p className="desk-date-label">{formatIsoDateLong(today)}</p>
+          <p className="eyebrow">{t("dash.eyebrow")}</p>
+          <h1>{t("dash.title")}</h1>
+          <p className="desk-date-label">{formatIsoDateLong(today, intl)}</p>
         </div>
         <Link className="desk-add-btn" to="/admin/bookings">
-          Open schedule
+          {t("dash.openSchedule")}
         </Link>
       </header>
 
       {error ? <p className="form-error">{error}</p> : null}
-      {loading ? <p className="lede">Loading today’s picture…</p> : null}
+      {loading ? <p className="lede">{t("dash.loading")}</p> : null}
 
       {!loading ? (
         <>
-          <section className="dash-cards" aria-label="Today at a glance">
+          <section className="dash-cards" aria-label={t("dash.glance")}>
             <Link className="dash-card" to={`/admin/bookings?tab=schedule&status=Confirmed&date=${today}`}>
-              <p className="dash-card-label">Remaining today</p>
+              <p className="dash-card-label">{t("dash.remaining")}</p>
               <p className="dash-card-value">{remainingToday.length}</p>
-              <p className="dash-card-scope">Confirmed visits still ahead on this salon day.</p>
+              <p className="dash-card-scope">{t("dash.remainingScope")}</p>
             </Link>
             <Link className="dash-card" to={`/admin/bookings?tab=schedule&status=Completed&date=${today}`}>
-              <p className="dash-card-label">Completed today</p>
+              <p className="dash-card-label">{t("dash.completed")}</p>
               <p className="dash-card-value">{completedToday.length}</p>
-              <p className="dash-card-scope">Visits marked completed on this salon day.</p>
+              <p className="dash-card-scope">{t("dash.completedScope")}</p>
             </Link>
             <Link className="dash-card dash-card-alert" to="/admin/bookings?tab=pending">
-              <p className="dash-card-label">Pending requests</p>
+              <p className="dash-card-label">{t("dash.pending")}</p>
               <p className="dash-card-value">{pendingAll.length}</p>
-              <p className="dash-card-scope">Waiting for a decision, any day — not only today.</p>
+              <p className="dash-card-scope">{t("dash.pendingScope")}</p>
             </Link>
           </section>
 
@@ -113,15 +115,13 @@ export function AdminDashboard({ catalog }: { catalog: Catalog }) {
             <section className="dash-alert">
               <div className="dash-alert-head">
                 <div>
-                  <h2>Needs a decision</h2>
+                  <h2>{t("dash.needsDecision")}</h2>
                   <p className="desk-scope">
-                    {pendingAll.length === 1
-                      ? "1 request is waiting. This is every pending booking, any day."
-                      : `${pendingAll.length} requests are waiting. This is every pending booking, any day.`}
+                    {pendingAll.length === 1 ? t("dash.pendingOne") : t("dash.pendingMany", { n: pendingAll.length })}
                   </p>
                 </div>
                 <Link className="desk-btn desk-btn-gold" to="/admin/bookings?tab=pending">
-                  Review requests
+                  {t("dash.review")}
                 </Link>
               </div>
               <ul className="dash-list">
@@ -132,29 +132,29 @@ export function AdminDashboard({ catalog }: { catalog: Catalog }) {
                         {booking.customerName}
                       </p>
                       <p className="booking-meta">
-                        {formatIsoDateLong(booking.localDate)} · {booking.localTime}
+                        {formatIsoDateLong(booking.localDate, intl)} · {booking.localTime}
                         {booking.localEndTime ? `–${booking.localEndTime}` : ""} · {booking.serviceName} ·{" "}
                         {booking.barberName}
                       </p>
                     </div>
-                    <span className="status-pill status-pending">Pending</span>
+                    <span className="status-pill status-pending">{t("status.Pending")}</span>
                   </li>
                 ))}
               </ul>
             </section>
           ) : (
-            <p className="form-hint">No requests waiting. New pending bookings from customers will appear here.</p>
+            <p className="form-hint">{t("dash.noPending")}</p>
           )}
 
           <section className="dash-upcoming">
             <div className="desk-top">
-              <h2>Upcoming confirmed</h2>
+              <h2>{t("dash.upcoming")}</h2>
               <p className="desk-updated">
-                {updatedAt ? `Updated ${formatZonedClock(timeZone, updatedAt)}` : ""}
+                {updatedAt ? t("dash.updated", { time: formatZonedClock(timeZone, updatedAt) }) : ""}
               </p>
             </div>
             {!upcoming.length ? (
-              <p className="lede">No upcoming confirmed visits.</p>
+              <p className="lede">{t("dash.noUpcoming")}</p>
             ) : (
               <ul className="dash-list">
                 {upcoming.map((booking) => (
@@ -165,7 +165,7 @@ export function AdminDashboard({ catalog }: { catalog: Catalog }) {
                           {booking.localTime}
                           {booking.localEndTime ? `–${booking.localEndTime}` : ""}
                         </strong>
-                        <span className="cell-sub">{formatIsoDateLong(booking.localDate)}</span>
+                        <span className="cell-sub">{formatIsoDateLong(booking.localDate, intl)}</span>
                       </p>
                       <p className="desk-customer" dir="auto">
                         {booking.customerName}
@@ -178,7 +178,7 @@ export function AdminDashboard({ catalog }: { catalog: Catalog }) {
                       className="desk-btn desk-btn-solid"
                       to={`/admin/bookings?tab=schedule&status=Confirmed&date=${booking.localDate}`}
                     >
-                      View day
+                      {t("dash.viewDay")}
                     </Link>
                   </li>
                 ))}

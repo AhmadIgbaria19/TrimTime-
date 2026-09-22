@@ -4,6 +4,7 @@ import { apiRequest, createBooking, type PublicBooking } from "../api/auth";
 import { formatPrice } from "../api/catalog";
 import { MonthCalendar } from "../components/MonthCalendar";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import { useSalon } from "../context/SalonContext";
 import { addIsoDays, datesInRange, isoWeekdaySun0, zonedToday } from "../lib/dates";
 import { newIdempotencyKey } from "../lib/id";
@@ -23,6 +24,7 @@ function isAbortError(error: unknown) {
 export function BookPage() {
   const { user } = useAuth();
   const { catalog, loading } = useSalon();
+  const { t, tApi } = useLocale();
   const [serviceId, setServiceId] = useState("");
   const [barberId, setBarberId] = useState("");
   const [date, setDate] = useState("");
@@ -105,7 +107,7 @@ export function BookPage() {
         if (isAbortError(err) || controller.signal.aborted) {
           return;
         }
-        setError(err instanceof Error ? err.message : "Could not load times.");
+        setError(err instanceof Error ? tApi(err.message) : t("book.loadTimesFail"));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -123,7 +125,7 @@ export function BookPage() {
     }
     const slot = availability?.slots.find((item) => item.localTime === selectedTime);
     if (!slot?.start || !selectedService) {
-      setError("Choose an available time first.");
+      setError(t("book.chooseTimeFirst"));
       return;
     }
 
@@ -139,7 +141,7 @@ export function BookPage() {
       });
       setCreated(booking);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send the booking.");
+      setError(err instanceof Error ? tApi(err.message) : t("book.sendFail"));
       if (!isAbortError(err)) {
         const query = new URLSearchParams({ serviceId, barberId, date });
         apiRequest<Availability>(`/api/availability?${query.toString()}`)
@@ -158,7 +160,7 @@ export function BookPage() {
   if (loading) {
     return (
       <main className="auth-page">
-        <p>Loading the atelier…</p>
+        <p>{t("loadingAtelier")}</p>
       </main>
     );
   }
@@ -167,16 +169,22 @@ export function BookPage() {
     return (
       <main className="auth-page">
         <section className="auth-card book-card">
-          <p className="eyebrow">Request received</p>
-          <h1>Pending confirmation</h1>
+          <p className="eyebrow">{t("book.received")}</p>
+          <h1>{t("book.pendingTitle")}</h1>
           <p className="lede">
-            {created.serviceName} with {created.barberName} on {created.localDate} at {created.localTime}. The
-            salon will confirm this hold. Price {formatPrice(created.priceIls)} · {created.durationMinutes} min.
+            {t("book.pendingLede", {
+              service: created.serviceName,
+              barber: created.barberName,
+              date: created.localDate,
+              time: created.localTime,
+              price: formatPrice(created.priceIls),
+              n: created.durationMinutes,
+            })}
           </p>
-          {created.note ? <p className="form-hint">Note: {created.note}</p> : null}
+          {created.note ? <p className="form-hint">{t("book.noteLine", { note: created.note })}</p> : null}
           <div className="auth-form">
             <Link className="btn btn-gold" to="/bookings">
-              View my bookings
+              {t("book.viewMine")}
             </Link>
             <button
               className="btn btn-ghost"
@@ -188,7 +196,7 @@ export function BookPage() {
                 idempotencyKey.current = newIdempotencyKey();
               }}
             >
-              Book another time
+              {t("book.another")}
             </button>
           </div>
         </section>
@@ -202,29 +210,26 @@ export function BookPage() {
   return (
     <main className="auth-page">
       <section className="auth-card book-card">
-        <p className="eyebrow">Availability</p>
-        <h1>Choose a time</h1>
-        <p className="lede">
-          Pick a service, barber, and day. Times follow the service length, hours, and any breaks. A pending
-          request holds the slot until the salon responds.
-        </p>
+        <p className="eyebrow">{t("book.eyebrow")}</p>
+        <h1>{t("book.title")}</h1>
+        <p className="lede">{t("book.lede")}</p>
 
         <div className="auth-form">
           <label>
-            Service
+            {t("service")}
             <select value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
-              <option value="">Select a service</option>
+              <option value="">{t("book.selectService")}</option>
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
-                  {service.name} · {service.durationMinutes} min
+                  {t("book.serviceOption", { name: service.name, n: service.durationMinutes })}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Barber
+            {t("barber")}
             <select value={barberId} onChange={(event) => setBarberId(event.target.value)}>
-              <option value="">Select a barber</option>
+              <option value="">{t("book.selectBarber")}</option>
               {barbers.map((barber) => (
                 <option key={barber.id} value={barber.id}>
                   {barber.name}
@@ -235,7 +240,7 @@ export function BookPage() {
         </div>
 
         <fieldset className="cal-fieldset">
-          <legend>Date</legend>
+          <legend>{t("date")}</legend>
           <MonthCalendar
             timeZone={timeZone}
             horizonDays={horizonDays}
@@ -248,18 +253,18 @@ export function BookPage() {
 
         <div className="slot-board" aria-live="polite">
           <div className="slot-heading">
-            <h2>Available times</h2>
-            {selectedService ? <p>Duration: {selectedService.durationMinutes} min</p> : null}
+            <h2>{t("book.availableTimes")}</h2>
+            {selectedService ? <p>{t("book.duration", { n: selectedService.durationMinutes })}</p> : null}
           </div>
 
-          {!date ? <p className="form-hint">Select a day on the calendar.</p> : null}
+          {!date ? <p className="form-hint">{t("book.selectDayHint")}</p> : null}
           {date && (!serviceId || !barberId) ? (
-            <p className="form-hint">Choose a service and barber to load times for this day.</p>
+            <p className="form-hint">{t("book.choosePair")}</p>
           ) : null}
-          {canLoadTimes && loadingSlots ? <p className="form-hint">Checking times…</p> : null}
+          {canLoadTimes && loadingSlots ? <p className="form-hint">{t("book.checkingTimes")}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
           {canLoadTimes && !loadingSlots && !error && availability && availability.slots.length === 0 ? (
-            <p className="form-hint">No times on this day.</p>
+            <p className="form-hint">{t("book.noTimes")}</p>
           ) : null}
 
           {canLoadTimes && !loadingSlots && availability && availability.slots.length > 0 ? (
@@ -282,29 +287,29 @@ export function BookPage() {
 
         <form className="auth-form book-submit" onSubmit={onSubmit}>
           <label>
-            Note (optional)
+            {t("book.noteOptional")}
             <textarea
               value={note}
               maxLength={280}
               rows={3}
-              placeholder="Anything the barber should know"
+              placeholder={t("book.notePlaceholder")}
               onChange={(event) => setNote(event.target.value)}
             />
           </label>
 
           {user ? (
             <button className="btn btn-gold" type="submit" disabled={!selectedTime || submitting}>
-              {submitting ? "Sending…" : "Request this time"}
+              {submitting ? t("book.sending") : t("book.requestTime")}
             </button>
           ) : (
             <p className="auth-switch">
-              Sign in to send the request.{" "}
+              {t("book.signInToSend")}{" "}
               <Link to="/login" state={{ from: "/book" }}>
-                Sign in
+                {t("auth.signIn")}
               </Link>{" "}
-              or{" "}
+              {t("book.or")}{" "}
               <Link to="/register" state={{ from: "/book" }}>
-                create an account
+                {t("book.createAccountLower")}
               </Link>
               .
             </p>
@@ -313,8 +318,12 @@ export function BookPage() {
 
         {user && selectedTime && selectedService && selectedBarber ? (
           <p className="form-hint">
-            {selectedService.name} with {selectedBarber.name} at {selectedTime} ·{" "}
-            {formatPrice(selectedService.priceIls)}. Status will be Pending.
+            {t("book.pendingHint", {
+              service: selectedService.name,
+              barber: selectedBarber.name,
+              time: selectedTime,
+              price: formatPrice(selectedService.priceIls),
+            })}
           </p>
         ) : null}
       </section>

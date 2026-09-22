@@ -63,7 +63,7 @@ No access keys in GitHub. After `terraform apply` of the GitHub OIDC role:
 3. GitHub repo → **Settings → Environments → New environment** named **`production`**. Add yourself as a **required reviewer**. Do this **before** the first push to `main` that includes `publish`/`deploy`, or the deploy job will run without a human gate.
 4. If `terraform apply` fails because `token.actions.githubusercontent.com` already exists in the account, set `github_oidc_provider_arn` to that ARN and apply again. Do not create a second provider for the same URL.
 
-The workflow file is still [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). Pull requests stay checks-only. `push` to `main` publishes arm64 then waits on the `production` environment before SSM deploy.
+The workflow file is [`.github/workflows/cicd.yml`](../../.github/workflows/cicd.yml). Pull requests stay checks-only. `push` to `main` publishes arm64 then waits on the `production` environment before SSM deploy.
 
 ## First AWS resource (only after apply approval)
 

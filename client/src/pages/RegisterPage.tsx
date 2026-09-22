@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import { postAuthPath, safeNextPath } from "../lib/nav";
 
 export function RegisterPage() {
   const { user, register } = useAuth();
+  const { t, tApi } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const next = safeNextPath(location.state);
@@ -29,7 +31,7 @@ export function RegisterPage() {
       });
       navigate(postAuthPath(created.role, next));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create the account.");
+      setError(err instanceof Error ? tApi(err.message) : t("auth.registerFail"));
     } finally {
       setSubmitting(false);
     }
@@ -38,27 +40,24 @@ export function RegisterPage() {
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <p className="eyebrow">Customer account</p>
-        <h1>Create an account</h1>
-        <p className="lede">
-          Booking uses the name and phone on your account. The number is stored in international
-          format and is not verified by SMS in this demo.
-        </p>
+        <p className="eyebrow">{t("auth.customerAccount")}</p>
+        <h1>{t("auth.createAccount")}</h1>
+        <p className="lede">{t("auth.registerLede")}</p>
         <form className="auth-form" onSubmit={onSubmit}>
           <label>
-            Full name
+            {t("auth.fullName")}
             <input name="name" type="text" autoComplete="name" required minLength={2} />
           </label>
           <label>
-            Phone number
+            {t("auth.phone")}
             <input name="phone" type="tel" autoComplete="tel" required placeholder="0591234567" />
           </label>
           <label>
-            Password
+            {t("auth.password")}
             <input name="password" type="password" autoComplete="new-password" required minLength={8} />
           </label>
           <label>
-            Confirm password
+            {t("auth.confirmPassword")}
             <input
               name="confirmPassword"
               type="password"
@@ -69,11 +68,11 @@ export function RegisterPage() {
           </label>
           {error ? <p className="form-error">{error}</p> : null}
           <button className="btn btn-gold" type="submit" disabled={submitting}>
-            {submitting ? "Creating…" : "Create account"}
+            {submitting ? t("auth.creating") : t("auth.createAccount")}
           </button>
         </form>
         <p className="auth-switch">
-          Already registered? <Link to="/login" state={next ? { from: next } : undefined}>Sign in</Link>
+          {t("auth.alreadyRegistered")} <Link to="/login" state={next ? { from: next } : undefined}>{t("auth.signIn")}</Link>
         </p>
       </section>
     </main>

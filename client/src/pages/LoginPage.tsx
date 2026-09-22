@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import { postAuthPath, safeNextPath } from "../lib/nav";
 
 export function LoginPage() {
   const { user, login } = useAuth();
+  const { t, tApi } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const next = safeNextPath(location.state);
@@ -27,7 +29,7 @@ export function LoginPage() {
       });
       navigate(postAuthPath(signedIn.role, next));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not sign in.");
+      setError(err instanceof Error ? tApi(err.message) : t("auth.signInFail"));
     } finally {
       setSubmitting(false);
     }
@@ -36,28 +38,26 @@ export function LoginPage() {
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <p className="eyebrow">Welcome back</p>
-        <h1>Sign in</h1>
-        <p className="lede">Use the phone number and password from your customer or admin account.</p>
+        <p className="eyebrow">{t("auth.welcomeBack")}</p>
+        <h1>{t("auth.signIn")}</h1>
+        <p className="lede">{t("auth.signInLede")}</p>
         <form className="auth-form" onSubmit={onSubmit}>
           <label>
-            Phone number
+            {t("auth.phone")}
             <input name="phone" type="tel" autoComplete="tel" required placeholder="0591234567" />
           </label>
           <label>
-            Password
+            {t("auth.password")}
             <input name="password" type="password" autoComplete="current-password" required />
           </label>
           {error ? <p className="form-error">{error}</p> : null}
           <button className="btn btn-gold" type="submit" disabled={submitting}>
-            {submitting ? "Signing in…" : "Sign in"}
+            {submitting ? t("auth.signingIn") : t("auth.signIn")}
           </button>
         </form>
-        <p className="form-hint">
-          Password reset is not available in this demo. The salon owner must change it for you.
-        </p>
+        <p className="form-hint">{t("auth.passwordReset")}</p>
         <p className="auth-switch">
-          New here? <Link to="/register" state={next ? { from: next } : undefined}>Create an account</Link>
+          {t("auth.newHere")} <Link to="/register" state={next ? { from: next } : undefined}>{t("auth.createAccount")}</Link>
         </p>
       </section>
     </main>

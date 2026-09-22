@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import { useSalon } from "../context/SalonContext";
 
 export function Hero() {
   const { user } = useAuth();
   const { catalog } = useSalon();
+  const { t } = useLocale();
   const salon = catalog?.salon;
   const services = catalog?.services ?? [];
   const barbers = catalog?.barbers ?? [];
@@ -13,32 +15,29 @@ export function Hero() {
   return (
     <section className="hero" id="top">
       <div className="hero-copy">
-        <p className="eyebrow">Private chair · {salon?.city || "Jerusalem"}</p>
+        <p className="eyebrow">{t("hero.eyebrow", { city: salon?.city || "Jerusalem" })}</p>
         <h1>
-          The cut that
-          <em> holds.</em>
+          {t("hero.titleLead")}
+          <em> {t("hero.titleEm")}</em>
         </h1>
-        <p className="lede">
-          A single atelier for considered haircuts, slow shaves, and barbers who
-          work with time — not against it.
-        </p>
+        <p className="lede">{t("hero.lede")}</p>
         <div className="hero-actions">
           {user?.role === "admin" ? (
             <>
               <Link className="btn btn-gold" to="/admin">
-                Open dashboard
+                {t("hero.openDashboard")}
               </Link>
               <Link className="btn btn-ghost" to="/admin/bookings">
-                Manage bookings
+                {t("hero.manageBookings")}
               </Link>
             </>
           ) : (
             <>
               <Link className="btn btn-gold" to="/book">
-                Book an Appointment
+                {t("hero.book")}
               </Link>
               <a className="btn btn-ghost" href="/#services">
-                View services
+                {t("hero.viewServices")}
               </a>
             </>
           )}
@@ -46,24 +45,21 @@ export function Hero() {
         <ul className="hero-stats">
           <li>
             <strong>{services.length || "—"}</strong>
-            <span>signature services</span>
+            <span>{t("hero.statServices")}</span>
           </li>
           <li>
             <strong>{barbers.length || "—"}</strong>
-            <span>resident barbers</span>
+            <span>{t("hero.statBarbers")}</span>
           </li>
           <li>
             <strong>{longest || "—"}</strong>
-            <span>min longest slot</span>
+            <span>{t("minutesLongest")}</span>
           </li>
         </ul>
       </div>
 
       <figure className="hero-frame">
-        <img
-          src={salon?.heroImageUrl || "/images/atelier.jpg"}
-          alt="The salon interior"
-        />
+        <img src={salon?.heroImageUrl || "/images/atelier.jpg"} alt={t("hero.interiorAlt")} />
         <figcaption>{salon?.tagline}</figcaption>
       </figure>
     </section>

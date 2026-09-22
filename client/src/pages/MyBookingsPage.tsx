@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { cancelBooking, fetchMyBookings, type PublicBooking } from "../api/auth";
 import { formatPrice } from "../api/catalog";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
+import { statusKey } from "../i18n/messages";
 import { formatIsoDateLong } from "../lib/dates";
 
 type ViewTab = "upcoming" | "history";
@@ -21,6 +23,7 @@ function byStartDesc(a: PublicBooking, b: PublicBooking) {
 
 export function MyBookingsPage() {
   const { user, loading: authLoading } = useAuth();
+  const { t, tApi, intl } = useLocale();
   const [bookings, setBookings] = useState<PublicBooking[]>([]);
   const [cancellationHours, setCancellationHours] = useState(2);
   const [loading, setLoading] = useState(true);
@@ -41,9 +44,9 @@ export function MyBookingsPage() {
         setCancellationHours(data.cancellationHours);
         setError("");
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "Could not load bookings."))
+      .catch((err) => setError(err instanceof Error ? tApi(err.message) : t("my.loadFail")))
       .finally(() => setLoading(false));
-  }, [authLoading, user]);
+  }, [authLoading, user, t, tApi]);
 
   const now = Date.now();
   const upcoming = useMemo(
@@ -62,7 +65,7 @@ export function MyBookingsPage() {
   );
   const next = upcoming[0] ?? null;
   const visible = tab === "upcoming" ? upcoming.slice(1) : history;
-  const hoursLabel = cancellationHours === 1 ? "1 hour" : `${cancellationHours} hours`;
+  const hoursLabel = cancellationHours === 1 ? t("hours.one") : t("hours.many", { n: cancellationHours });
 
   async function onCancel(id: number) {
     if (pendingId !== id) {
@@ -76,7 +79,7 @@ export function MyBookingsPage() {
       setBookings((current) => current.map((booking) => (booking.id === id ? updated : booking)));
       setPendingId(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not cancel this booking.");
+      setError(err instanceof Error ? tApi(err.message) : t("my.cancelFail"));
     } finally {
       setWorkingId(null);
     }
@@ -85,7 +88,7 @@ export function MyBookingsPage() {
   if (authLoading || loading) {
     return (
       <main className="auth-page">
-        <p>Loading your bookings…</p>
+        <p>{t("loadingBookings")}</p>
       </main>
     );
   }
@@ -94,12 +97,12 @@ export function MyBookingsPage() {
     return (
       <main className="auth-page">
         <section className="auth-card">
-          <p className="eyebrow">Account</p>
-          <h1>Sign in to see bookings</h1>
-          <p className="lede">Your appointments are saved to the name and phone on your account.</p>
+          <p className="eyebrow">{t("my.account")}</p>
+          <h1>{t("my.signInTitle")}</h1>
+          <p className="lede">{t("my.signInLede")}</p>
           <div className="auth-form">
             <Link className="btn btn-gold" to="/login" state={{ from: "/bookings" }}>
-              Sign in
+              {t("auth.signIn")}
             </Link>
           </div>
         </section>
@@ -110,22 +113,19 @@ export function MyBookingsPage() {
   return (
     <main className="bookings-shell">
       <header className="admin-hero">
-        <p className="eyebrow">Your visits</p>
-        <h1>My Bookings</h1>
-        <p className="lede">
-          Pending requests hold the time until the salon responds. Confirmed visits need at least {hoursLabel}{" "}
-          of notice to cancel.
-        </p>
+        <p className="eyebrow">{t("my.eyebrow")}</p>
+        <h1>{t("my.title")}</h1>
+        <p className="lede">{t("my.lede", { hours: hoursLabel })}</p>
       </header>
 
       {error ? <p className="form-error">{error}</p> : null}
 
       {!bookings.length ? (
         <section className="auth-card">
-          <p className="lede">No bookings yet.</p>
+          <p className="lede">{t("my.empty")}</p>
           <div className="auth-form">
             <Link className="btn btn-gold" to="/book">
-              Book an appointment
+              {t("my.bookCta")}
             </Link>
           </div>
         </section>
@@ -143,42 +143,38 @@ export function MyBookingsPage() {
 
           <div className="board-tabs" role="tablist">
             <button className={tab === "upcoming" ? "tab active" : "tab"} type="button" onClick={() => setTab("upcoming")}>
-              Upcoming
+              {t("my.upcoming")}
               <span className="count-badge">{upcoming.length}</span>
             </button>
             <button className={tab === "history" ? "tab active" : "tab"} type="button" onClick={() => setTab("history")}>
-              History
+              {t("my.history")}
             </button>
           </div>
 
           {!visible.length && !(tab === "upcoming" && next) ? (
-            <p className="lede">{tab === "upcoming" ? "No upcoming visits." : "No past visits yet."}</p>
+            <p className="lede">{tab === "upcoming" ? t("my.noUpcoming") : t("my.noHistory")}</p>
           ) : visible.length ? (
             <ul className="booking-list">
               {visible.map((booking) => (
                 <li key={booking.id} className="booking-card">
                   <div>
                     <p className="booking-when">
-                      {formatIsoDateLong(booking.localDate)} · {booking.localTime}
+                      {formatIsoDateLong(booking.localDate, intl)} · {booking.localTime}
                     </p>
-                    <p className="booking-service">
-                      {booking.serviceName} with {booking.barberName}
-                    </p>
-                    <p className="booking-meta">
-                      {formatPrice(booking.priceIls)} · {booking.durationMinutes} min
-                    </p>
+                    <p className="booking-service">{t("my.with", { service: booking.serviceName, barber: booking.barberName })}</p>
+                    <p className="booking-meta">{t("my.meta", { price: formatPrice(booking.priceIls), n: booking.durationMinutes })}</p>
                     {booking.note ? (
                       <details className="booking-note">
-                        <summary>Note</summary>
+                        <summary>{t("note")}</summary>
                         <p>{booking.note}</p>
                       </details>
                     ) : null}
                     {booking.status === "Cancelled" && booking.cancelledBy === "admin" && booking.cancelledReason ? (
-                      <p className="salon-cancel-note">Cancelled by the salon: {booking.cancelledReason}</p>
+                      <p className="salon-cancel-note">{t("my.cancelSalon", { reason: booking.cancelledReason })}</p>
                     ) : null}
                   </div>
                   <div className="booking-side">
-                    <span className={`status-pill status-${booking.status.toLowerCase()}`}>{booking.status}</span>
+                    <span className={`status-pill status-${booking.status.toLowerCase()}`}>{t(statusKey(booking.status))}</span>
                     {booking.cancellable ? (
                       <>
                         <button
@@ -188,15 +184,13 @@ export function MyBookingsPage() {
                           onClick={() => onCancel(booking.id)}
                         >
                           {workingId === booking.id
-                            ? "Cancelling…"
+                            ? t("my.cancelling")
                             : pendingId === booking.id
-                              ? "Confirm cancel"
-                              : "Cancel"}
+                              ? t("my.confirmCancel")
+                              : t("my.cancel")}
                         </button>
                         <p className="cancel-hint">
-                          {booking.status === "Pending"
-                            ? "You can withdraw this request until it starts."
-                            : `Confirmed visits need at least ${hoursLabel} of notice.`}
+                          {booking.status === "Pending" ? t("my.withdrawHint") : t("my.noticeHint", { hours: hoursLabel })}
                         </p>
                       </>
                     ) : null}
@@ -224,18 +218,17 @@ function NextVisitCard({
   workingId: number | null;
   onCancel: (id: number) => void;
 }) {
+  const { t, intl } = useLocale();
   return (
     <section className="next-visit-card">
-      <p className="eyebrow">Next appointment</p>
-      <p className="next-visit-day">{formatIsoDateLong(booking.localDate)}</p>
+      <p className="eyebrow">{t("my.next")}</p>
+      <p className="next-visit-day">{formatIsoDateLong(booking.localDate, intl)}</p>
       <p className="next-visit-time">{booking.localTime}</p>
-      <p className="next-visit-detail">
-        {booking.serviceName} with {booking.barberName}
-      </p>
+      <p className="next-visit-detail">{t("my.with", { service: booking.serviceName, barber: booking.barberName })}</p>
       <p className="next-visit-price">{formatPrice(booking.priceIls)}</p>
-      <span className={`status-pill status-${booking.status.toLowerCase()}`}>{booking.status}</span>
+      <span className={`status-pill status-${booking.status.toLowerCase()}`}>{t(statusKey(booking.status))}</span>
       {booking.status === "Cancelled" && booking.cancelledBy === "admin" && booking.cancelledReason ? (
-        <p className="salon-cancel-note">Cancelled by the salon: {booking.cancelledReason}</p>
+        <p className="salon-cancel-note">{t("my.cancelSalon", { reason: booking.cancelledReason })}</p>
       ) : null}
       {booking.cancellable ? (
         <div className="next-visit-actions">
@@ -245,12 +238,10 @@ function NextVisitCard({
             disabled={workingId === booking.id}
             onClick={() => onCancel(booking.id)}
           >
-            {workingId === booking.id ? "Cancelling…" : pendingId === booking.id ? "Confirm cancel" : "Cancel visit"}
+            {workingId === booking.id ? t("my.cancelling") : pendingId === booking.id ? t("my.confirmCancel") : t("my.cancelVisit")}
           </button>
           <p className="cancel-hint">
-            {booking.status === "Pending"
-              ? "You can withdraw this request until it starts."
-              : `Confirmed visits need at least ${hoursLabel} of notice.`}
+            {booking.status === "Pending" ? t("my.withdrawHint") : t("my.noticeHint", { hours: hoursLabel })}
           </p>
         </div>
       ) : null}
