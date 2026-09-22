@@ -397,9 +397,9 @@ const ar: Dictionary = {
   "footer.generic": "اسم الصالون والشعار والحلاقون يديرها المالك.",
 
   "hero.eyebrow": "كرسي خاص · {city}",
-  "hero.titleLead": "قصة الشعر",
-  "hero.titleEm": "التي تثبت.",
-  "hero.lede": "مشغل واحد لقصات مدروسة، حلاقة هادئة، وحلاقين يعملون مع الوقت لا ضده.",
+  "hero.titleLead": "قصّة",
+  "hero.titleEm": "تدوم.",
+  "hero.lede": "مشغل واحد لقصّات مدروسة وحلاقة هادئة، مع حلاقين يعملون مع الوقت لا ضده.",
   "hero.book": "احجز موعدًا",
   "hero.viewServices": "عرض الخدمات",
   "hero.openDashboard": "فتح لوحة التحكم",
